@@ -400,7 +400,15 @@ function buildPricingTable() {
   const tbody = document.getElementById('pricingRows');
   tbody.innerHTML = PRODUCTS.map((p,i) => {
     // Spacer row
-    if (p.spacer) return `<tr><td colspan="4" style="height:12px;background:transparent;border:none;"></td></tr>`;
+    if (p.spacer) return `<tr>
+      <td colspan="4" style="padding:8px 12px 6px;border:none;background:transparent;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="flex:1;height:2px;background:var(--blue-light);"></div>
+          <span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--blue);white-space:nowrap;">Packaged Products</span>
+          <div style="flex:1;height:2px;background:var(--blue-light);"></div>
+        </div>
+      </td>
+    </tr>`;
 
     const safeCode = p.code.replace(/-/g,'_');
     const priceCell = p.freightOnly
