@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BioBlue Site Administration Form</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBb-EHe4hw-UmY9xFNRDMwbf-A27S2WbPQ&libraries=places" async defer></script>
+<style>
+  :root {
+    --navy:#003466;--blue:#0055a5;--blue-bright:#0077cc;--blue-light:#e8f2fb;--blue-pale:#f4f9ff;
+    --green:#00875a;--green-light:#e3f5ee;--red:#c0392b;--red-light:#fdecea;
+    --amber:#e67e22;--orange-light:#fef5e7;
+    --gray-dark:#2c3e50;--gray-mid:#6b7280;--gray-light:#e5e7eb;--gray-pale:#f9fafb;
+    --shadow:0 2px 12px rgba(0,52,102,0.10);--shadow-lg:0 8px 32px rgba(0,52,102,0.15);
+    --radius:12px;--radius-sm:8px;
+  }
+  * { box-sizing:border-box;margin:0;padding:0; }
+  body { font-family:'DM Sans',sans-serif;background:#f0f4f8;color:var(--gray-dark);min-height:100vh;font-size:15px;-webkit-font-smoothing:antialiased; }
+
+  .app-header { background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);color:white;padding:20px 20px 16px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-lg); }
+  .header-top { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px; }
+  .logo-badge { background:rgba(255,255,255,0.2);border-radius:8px;padding:6px 10px;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:1px;color:#a8d4f5; }
+  .header-title { font-size:17px;font-weight:700; }
+  .header-subtitle { font-size:12px;opacity:0.7;font-weight:300; }
+  .progress-bar-wrap { background:rgba(255,255,255,0.15);border-radius:4px;height:5px;overflow:hidden;margin-top:10px; }
+  .progress-bar-fill { height:100%;background:#64d2ff;border-radius:4px;transition:width 0.4s ease;width:0%; }
+  .progress-label { font-size:11px;opacity:0.7;margin-top:4px;text-align:right; }
+
+  .main-content { max-width:820px;margin:0 auto;padding:20px 16px 100px; }
+
+  .section-card { background:white;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden; }
+  .section-header { background:var(--navy);color:white;padding:14px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none; }
+  .section-header-icon { background:rgba(255,255,255,0.2);border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0; }
+  .section-header-text { flex:1; }
+  .section-header h2 { font-size:14px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase; }
+  .section-header p { font-size:11px;opacity:0.7;margin-top:1px; }
+  .section-toggle { font-size:18px;opacity:0.7; }
+  .section-body { padding:20px; }
+  .section-body.collapsed { display:none; }
+
+  .field-row { display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px; }
+  .field-row.full { grid-template-columns:1fr; }
+  .field-row.three { grid-template-columns:1fr 1fr 1fr; }
+  @media(max-width:520px) { .field-row,.field-row.three { grid-template-columns:1fr; } }
+  .field-group { display:flex;flex-direction:column;gap:5px; }
+  .field-label { font-size:12px;font-weight:600;color:var(--gray-mid);text-transform:uppercase;letter-spacing:0.4px; }
+  .field-label.required::after { content:' *';color:var(--red); }
+
+  input[type="text"],input[type="email"],input[type="tel"],input[type="number"],input[type="date"],textarea,select {
+    width:100%;padding:10px 12px;border:1.5px solid var(--gray-light);border-radius:var(--radius-sm);
+    font-family:'DM Sans',sans-serif;font-size:14px;color:var(--gray-dark);background:var(--gray-pale);
+    transition:border-color 0.15s;-webkit-appearance:none;
+  }
+  input:focus,textarea:focus,select:focus { outline:none;border-color:var(--blue-bright);box-shadow:0 0 0 3px rgba(0,119,204,0.12);background:white; }
+  textarea { resize:vertical;min-height:80px; }
+  input.field-filled,select.field-filled,textarea.field-filled { border-color:#6dba8a!important;background:#f2fbf5!important; }
+  input.field-empty,select.field-empty,textarea.field-empty { border-color:#f5a0a8!important;background:#fff5f6!important; }
+
+  /* Y/N */
+  .yn-item { display:flex;align-items:flex-start;gap:12px;padding:11px 14px;border-radius:var(--radius-sm);margin-bottom:6px;border:1.5px solid #f5a0a8;background:#fff5f6; }
+  .yn-item.yes { background:var(--green-light);border-color:#6dba8a; }
+  .yn-item.no  { background:var(--red-light);border-color:#f5c6c2; }
+  .yn-question { flex:1;font-size:13.5px;line-height:1.4;padding-top:2px; }
+  .yn-controls { display:flex;gap:6px;flex-shrink:0; }
+  .yn-btn { padding:5px 12px;border-radius:6px;border:1.5px solid var(--gray-light);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:white;color:var(--gray-mid); }
+  .yn-btn.active-y { background:var(--green);border-color:var(--green);color:white; }
+  .yn-btn.active-n { background:var(--red);border-color:var(--red);color:white; }
+  .inline-field { display:flex;align-items:flex-start;gap:10px;background:var(--blue-pale);border:1.5px solid var(--blue-light);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:12px 14px;margin-top:-4px;margin-bottom:6px; }
+  .inline-arrow { font-size:18px;color:var(--blue-bright);font-weight:700;padding-top:18px;flex-shrink:0; }
+  .inline-content { flex:1;display:flex;flex-direction:column;gap:5px; }
+
+  /* PRICING TABLE */
+  .pricing-table { width:100%;border-collapse:collapse;margin-top:8px; }
+  .pricing-table th { background:var(--navy);color:white;padding:10px 12px;font-size:12px;font-weight:700;text-align:left;letter-spacing:0.3px; }
+  .pricing-table th:last-child { text-align:center;width:80px; }
+  .pricing-table td { padding:8px 12px;border-bottom:1px solid var(--gray-light);font-size:13px;vertical-align:middle; }
+  .pricing-table tr:nth-child(even) td { background:var(--gray-pale); }
+  .pricing-table tr:hover td { background:var(--blue-pale); }
+  .pricing-table td:last-child { text-align:center; }
+  .price-check { width:18px;height:18px;accent-color:var(--blue);cursor:pointer; }
+  .price-input { width:90px;padding:6px 8px;border:1.5px solid var(--gray-light);border-radius:6px;font-size:13px;font-family:'DM Mono',monospace;font-weight:500;color:var(--navy);text-align:right;background:var(--gray-pale); }
+  .price-input:focus { outline:none;border-color:var(--blue-bright);background:white; }
+  .price-code { font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--navy);background:var(--blue-light);padding:3px 8px;border-radius:4px;display:inline-block; }
+  .price-desc { font-size:12px;color:var(--gray-mid);margin-top:2px; }
+  .freight-section { margin-top:16px;padding:14px;background:var(--blue-pale);border:1.5px solid var(--blue-light);border-radius:var(--radius-sm); }
+  .freight-section h4 { font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px; }
+  .freight-row { display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--blue-light); }
+  .freight-row:last-child { border-bottom:none; }
+  .freight-label { flex:1;font-size:13px; }
+  .carrier-field { margin-top:8px;padding:10px 14px;background:white;border:1.5px solid var(--blue-light);border-radius:var(--radius-sm); }
+
+  /* STICKY FOOTER */
+  .sticky-footer { position:fixed;bottom:0;left:0;right:0;background:white;border-top:2px solid var(--blue-light);padding:10px 12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;z-index:99;box-shadow:0 -4px 20px rgba(0,52,102,0.12); }
+  .sticky-footer .btn { padding:12px 8px;font-size:13px;font-weight:700;border-radius:var(--radius-sm);text-align:center;white-space:nowrap;width:100%;cursor:pointer;font-family:'DM Sans',sans-serif;border:none; }
+  .btn-clear { background:white;color:var(--red);border:2px solid var(--red)!important; }
+  .btn-dl    { background:white;color:var(--navy);border:2px solid var(--navy)!important; }
+  .btn-submit { background:var(--navy);color:white; }
+  .btn-submit:hover { background:var(--blue); }
+
+  .modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:20px; }
+  .modal-overlay.active { display:flex; }
+  .modal-box { background:white;border-radius:var(--radius);padding:24px;max-width:420px;width:100%;box-shadow:var(--shadow-lg); }
+  .modal-box h3 { font-size:16px;margin-bottom:8px;color:var(--navy); }
+  .modal-box p { font-size:13px;color:var(--gray-mid);margin-bottom:16px;white-space:pre-line; }
+  .modal-actions { display:flex;gap:8px;justify-content:flex-end; }
+  .btn-primary { background:var(--navy);color:white;border:none;border-radius:var(--radius-sm);padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif; }
+
+  .toast { position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--gray-dark);color:white;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:600;opacity:0;transition:all 0.3s;z-index:300;white-space:nowrap; }
+  .toast.show { opacity:1;transform:translateX(-50%) translateY(0); }
+
+  .address-field-wrap { position:relative; }
+  .gps-btn { position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--blue-bright);color:white;border:none;border-radius:6px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap; }
+  .gps-status { font-size:11px;color:var(--blue);margin-top:3px;min-height:16px; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-top">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="logo-badge">BIOBLUE</div>
+      <div>
+        <div class="header-title">Site Administration Form</div>
+        <div class="header-subtitle">Client Setup · Pricing · Invoicing</div>
+      </div>
+    </div>
+    <button onclick="confirmClear()" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🗑️ Clear</button>
+  </div>
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBar"></div></div>
+  <div class="progress-label" id="progressLabel">0% complete</div>
+</div>
+
+<div class="main-content">
+
+  <!-- SECTION 1: CLIENT DETAILS -->
+  <div class="section-card">
+    <div class="section-header" onclick="toggleSection('s1')">
+      <div class="section-header-icon">🏢</div>
+      <div class="section-header-text">
+        <h2>1. Client Details</h2>
+        <p>Customer and site identification</p>
+      </div>
+      <div class="section-toggle" id="toggle-s1">▼</div>
+    </div>
+    <div class="section-body" id="s1">
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label required">Customer / Billing Entity</label>
+          <input type="text" id="customerName" placeholder="e.g. Acme Haulage Pty Ltd" oninput="updateProgress()">
+        </div>
+        <div class="field-group">
+          <label class="field-label required">Date</label>
+          <input type="date" id="formDate" oninput="updateProgress()">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label required">Site Name</label>
+          <input type="text" id="siteName" placeholder="e.g. Acme Welshpool Depot" oninput="updateProgress()">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Site Number</label>
+          <input type="text" id="siteNumber" placeholder="e.g. BB-0001">
+        </div>
+      </div>
+      <div class="field-group" style="margin-bottom:12px;">
+        <label class="field-label required">Site Address</label>
+        <div class="address-field-wrap">
+          <div style="position:relative;">
+            <input type="text" id="siteAddress" placeholder="Street address" style="padding-right:110px;" oninput="updateProgress();addrAC(this,'addrDrop')" autocomplete="off">
+            <div id="addrDrop" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #ccc;border-radius:0 0 8px 8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:999;max-height:220px;overflow-y:auto;"></div>
+          </div>
+          <button class="gps-btn" onclick="getGPS()">📍 Use GPS</button>
+        </div>
+        <div class="gps-status" id="gpsStatus"></div>
+      </div>
+      <div class="field-row three">
+        <div class="field-group">
+          <label class="field-label">Suburb</label>
+          <input type="text" id="suburb" placeholder="e.g. Welshpool">
+        </div>
+        <div class="field-group">
+          <label class="field-label">State</label>
+          <select id="state">
+            <option value="">Select...</option>
+            <option>WA</option><option>NSW</option><option>VIC</option>
+            <option>QLD</option><option>SA</option><option>TAS</option>
+            <option>NT</option><option>ACT</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Postcode</label>
+          <input type="text" id="postcode" placeholder="6106" maxlength="4">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: KEY CONTACTS -->
+  <div class="section-card">
+    <div class="section-header" onclick="toggleSection('s2')">
+      <div class="section-header-icon">👤</div>
+      <div class="section-header-text">
+        <h2>2. Key Contacts & Site Type</h2>
+        <p>Decision maker and site classification</p>
+      </div>
+      <div class="section-toggle" id="toggle-s2">▼</div>
+    </div>
+    <div class="section-body" id="s2">
+      <div class="field-row full">
+        <div class="field-group">
+          <label class="field-label">Key Decision Maker <span style="font-size:10px;font-weight:400;color:var(--gray-mid);">(if different to main billing contact)</span></label>
+          <input type="text" id="decisionMaker" placeholder="Full name">
+        </div>
+      </div>
+
+      <div class="yn-item" id="yn-distrib">
+        <div class="yn-question">Is this a distributor / reseller site? <span style="font-size:11px;color:var(--gray-mid);">(Select NO for internal usage)</span></div>
+        <div class="yn-controls">
+          <button class="yn-btn" onclick="setYN('distrib','Y')">Y</button>
+          <button class="yn-btn" onclick="setYN('distrib','N')">N</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: INVOICING & PURCHASE ORDERS -->
+  <div class="section-card">
+    <div class="section-header" onclick="toggleSection('s3')">
+      <div class="section-header-icon">🧾</div>
+      <div class="section-header-text">
+        <h2>3. Invoicing & Purchase Orders</h2>
+        <p>Email routing and PO requirements</p>
+      </div>
+      <div class="section-toggle" id="toggle-s3">▼</div>
+    </div>
+    <div class="section-body" id="s3">
+
+      <div class="field-row full" style="margin-bottom:16px;">
+        <div class="field-group">
+          <label class="field-label">Additional Invoicing Emails <span style="font-size:10px;font-weight:400;color:var(--gray-mid);">(aside from credit application email)</span></label>
+          <input type="text" id="invoiceEmails" placeholder="e.g. accounts@company.com, depot@company.com">
+        </div>
+      </div>
+
+      <div class="yn-item" id="yn-po">
+        <div class="yn-question">Are Purchase Orders (POs) required for this account?</div>
+        <div class="yn-controls">
+          <button class="yn-btn" onclick="setYN('po','Y')">Y</button>
+          <button class="yn-btn" onclick="setYN('po','N')">N</button>
+        </div>
+      </div>
+      <div id="poEmailField" style="display:none;">
+        <div class="inline-field">
+          <div class="inline-arrow">↳</div>
+          <div class="inline-content">
+            <label class="field-label">If Yes — PO delivery email address</label>
+            <input type="email" id="poEmail" placeholder="e.g. purchasing@company.com">
+          </div>
+        </div>
+      </div>
+
+      <div class="field-row full" style="margin-top:8px;">
+        <div class="field-group">
+          <label class="field-label">Site POD Email <span style="font-size:10px;font-weight:400;color:var(--gray-mid);">(for TrackPOD proof of delivery)</span></label>
+          <input type="email" id="podEmail" placeholder="e.g. depot@company.com">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SECTION 4: PRICING -->
+  <div class="section-card">
+    <div class="section-header" onclick="toggleSection('s4')">
+      <div class="section-header-icon">💲</div>
+      <div class="section-header-text">
+        <h2>4. Pricing</h2>
+        <p>Product codes and CPL rates for this site</p>
+      </div>
+      <div class="section-toggle" id="toggle-s4">▼</div>
+    </div>
+    <div class="section-body" id="s4">
+
+      <p style="font-size:12px;color:var(--gray-mid);margin-bottom:12px;">Tick all product codes that apply to this site and enter the agreed CPL rate for each.</p>
+
+      <table class="pricing-table" style="table-layout:fixed;width:100%;">
+        <colgroup>
+          <col style="width:44%;">
+          <col style="width:10%;">
+          <col style="width:23%;">
+          <col style="width:23%;">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Product Code</th>
+            <th style="text-align:center;">Active</th>
+            <th style="text-align:center;">Price</th>
+            <th style="text-align:center;">Freight</th>
+          </tr>
+        </thead>
+        <tbody id="pricingRows"></tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <!-- SECTION 5: NOTES & SIGN-OFF -->
+  <div class="section-card">
+    <div class="section-header" onclick="toggleSection('s5')">
+      <div class="section-header-icon">📝</div>
+      <div class="section-header-text">
+        <h2>5. Notes & Sign-Off</h2>
+        <p>Additional notes and BDM confirmation</p>
+      </div>
+      <div class="section-toggle" id="toggle-s5">▼</div>
+    </div>
+    <div class="section-body" id="s5">
+      <div class="field-group" style="margin-bottom:16px;">
+        <label class="field-label">Notes</label>
+        <textarea id="notes" rows="4" placeholder="Any additional setup notes, special arrangements, follow-up items..." oninput="updateProgress()"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label required">Completed By</label>
+          <select id="completedBy" onchange="autoFill(this.value);updateProgress()">
+            <option value="">— Select BDM —</option>
+            <option>Michael Hodnett</option>
+            <option>Derek Page</option>
+            <option>Angelo Sayas</option>
+            <option>Kevin Goverd</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">BDM Email</label>
+          <input type="email" id="bdmEmail" placeholder="bdm@bioblue.com.au">
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- STICKY FOOTER -->
+<div class="sticky-footer">
+  <button class="btn btn-clear" onclick="confirmClear()">🗑️ Clear</button>
+  <button class="btn btn-dl" onclick="downloadPDF()">⬇️ Download</button>
+  <button class="btn btn-submit" onclick="uploadAndSend()">☁️ Upload & Send</button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <h3>✅ Form Submitted</h3>
+    <p id="modalMsg"></p>
+    <div class="modal-actions"><button class="btn-primary" onclick="closeModal()">Close</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// =====================================================================
+// CONFIG
+// =====================================================================
+const GDRIVE_CLIENT_ID    = '49055725643-mlnqu8l92vmau83rnrk8imupiqvs03t1.apps.googleusercontent.com';
+const GDRIVE_FOLDER_NAME  = 'BioBlue Audits';
+const CLIENT_RECORDS_NAME = 'BioBlue_Client_Records.xlsx';
+let gdriveToken = null;
+
+const BDM_MAP = {
+  'Michael Hodnett': { email:'michael.hodnett@bioblue.com.au' },
+  'Derek Page':      { email:'derek.page@bioblue.com.au' },
+  'Angelo Sayas':    { email:'angelo.sayas@bioblue.com.au' },
+  'Kevin Goverd':    { email:'kevin.goverd@bioblue.com.au' },
+};
+
+// =====================================================================
+// PRICING TABLE
+// =====================================================================
+const PRODUCTS = [
+  { code:'BB-ADB-Bulk',         desc:'Bulk AdBlue® (BioBlue Delivered)',             priceUnit:null,    freightUnit:'¢/L',            hasFreight:true,  freightOnly:true, hasCarrier:false },
+  { code:'BB-ADB-Bulk-Freight', desc:'Bulk freight component',                       priceUnit:null,    freightUnit:'¢/L',            hasFreight:true,  freightOnly:true, hasCarrier:false },
+  { code:'_SPACER',             desc:'',                                              spacer:true },
+  { code:'BB-ADB-1000',         desc:'AdBlue® 1,000L IBC',                           priceUnit:'$/unit', freightUnit:'$/pallet space', hasFreight:true  },
+  { code:'BB-ADB-210',          desc:'AdBlue® 210L drum',                            priceUnit:'$/unit', freightUnit:'$/pallet space', hasFreight:true  },
+  { code:'BB-ADB-20',           desc:'AdBlue® 20L container',                        priceUnit:'$/unit', freightUnit:'$/pallet space', hasFreight:true  },
+  { code:'BB-ADB-15',           desc:'AdBlue® 15L container',                        priceUnit:'$/unit', freightUnit:'$/pallet space', hasFreight:true  },
+  { code:'BB-ADB-10',           desc:'AdBlue® 10L container',                        priceUnit:'$/unit', freightUnit:'$/pallet space', hasFreight:true  },
+  { code:'BB-ADB-01',           desc:'AdBlue® 1L bottle',                            priceUnit:'$/unit', freightUnit:'$/pallet space', hasFreight:true  },
+  { code:'OTHER',               desc:'Other product / special pricing',              priceUnit:'$/unit', freightUnit:'$/pallet space', hasFreight:true,  other:true },
+  { code:'BB-ADB-Pack',         desc:'Packaged AdBlue® freight (all pack products)', priceUnit:null,    freightUnit:'$/pallet space', hasFreight:true,  freightOnly:true, hasCarrier:true },
+];
+
+function buildPricingTable() {
+  const tbody = document.getElementById('pricingRows');
+  tbody.innerHTML = PRODUCTS.map((p,i) => {
+    // Spacer row
+    if (p.spacer) return `<tr><td colspan="4" style="height:12px;background:transparent;border:none;"></td></tr>`;
+
+    const safeCode = p.code.replace(/-/g,'_');
+    const priceCell = p.freightOnly
+      ? '<span style="font-size:11px;color:var(--gray-mid);font-style:italic;">Freight only</span>'
+      : p.priceUnit
+        ? `<input type="text" class="price-input" id="price_${safeCode}" placeholder="${p.priceUnit}" style="width:100%;">`
+        : '';
+    const freightCell = p.hasFreight
+      ? `<div style="display:flex;flex-direction:column;gap:4px;">
+           <input type="text" class="price-input" id="freight_${safeCode}" placeholder="${p.freightUnit}" style="width:100%;">
+           ${p.hasCarrier ? `<input type="text" id="carrier_${safeCode}" placeholder="Carrier..." style="display:none;padding:5px 8px;border:1.5px solid var(--blue-light);border-radius:6px;font-size:11px;font-family:DM Sans,sans-serif;background:var(--blue-pale);width:100%;" oninput="updateProgress()">` : ''}
+         </div>`
+      : '<span style="font-size:11px;color:var(--gray-mid);font-style:italic;">BioBlue</span>';
+    return `<tr id="row_${safeCode}">
+      <td>
+        <span class="price-code">${p.code}</span>
+        ${p.other ? `<br><input type="text" id="otherCode" placeholder="Product code..." style="margin-top:5px;padding:4px 7px;border:1.5px solid var(--gray-light);border-radius:5px;font-size:11px;font-family:DM Mono,monospace;width:130px;">` : ''}
+        <div class="price-desc" style="margin-top:2px;">${p.desc}</div>
+        ${p.other ? `<input type="text" id="otherDesc" placeholder="Description..." style="margin-top:3px;padding:4px 7px;border:1.5px solid var(--gray-light);border-radius:5px;font-size:11px;width:100%;">` : ''}
+      </td>
+      <td style="text-align:center;vertical-align:middle;">
+        <input type="checkbox" class="price-check" id="chk_${safeCode}" onchange="onProductTick('${p.code}',this.checked);updateProgress()">
+      </td>
+      <td>${priceCell}</td>
+      <td>${freightCell}</td>
+    </tr>`;
+  }).join('');
+}
+
+function onProductTick(code, checked) {
+  const safeCode = code.replace(/-/g,'_');
+  const row = document.getElementById('row_'+safeCode);
+  if (row) {
+    row.style.background = checked ? 'var(--green-light)' : '';
+    // Show carrier field for Pack and Bulk if ticked
+    const carrierEl = document.getElementById('carrier_'+safeCode);
+    if (carrierEl) carrierEl.style.display = checked ? 'block' : 'none';
+  }
+}
+
+function getPricingData() {
+  return PRODUCTS.map(p => {
+    const safeCode = p.code.replace(/-/g,'_');
+    const active  = document.getElementById('chk_'+safeCode)?.checked || false;
+    const price   = document.getElementById('price_'+safeCode)?.value?.trim() || '';
+    const freight = document.getElementById('freight_'+safeCode)?.value?.trim() || '';
+    const carrier = document.getElementById('carrier_'+safeCode)?.value?.trim() || '';
+    const code    = p.other ? (document.getElementById('otherCode')?.value?.trim() || 'OTHER') : p.code;
+    const desc    = p.other ? (document.getElementById('otherDesc')?.value?.trim() || p.desc) : p.desc;
+    return { code, desc, active, price, freight, carrier, priceUnit:p.priceUnit, freightUnit:p.freightUnit };
+  }).filter(p => p.active && !p.spacer);
+}
+
+// toggleCarrier removed — carrier now inline per product row
+
+// =====================================================================
+// Y/N
+// =====================================================================
+const ynValues = {};
+function setYN(id, val) {
+  ynValues[id] = val;
+  const item = document.getElementById('yn-'+id);
+  if (!item) return;
+  item.classList.remove('yes','no');
+  item.classList.add(val==='Y'?'yes':'no');
+  item.querySelectorAll('.yn-btn').forEach(b=>{
+    b.classList.remove('active-y','active-n');
+    if(b.textContent==='Y'&&val==='Y') b.classList.add('active-y');
+    if(b.textContent==='N'&&val==='N') b.classList.add('active-n');
+  });
+  if (id==='po') {
+    document.getElementById('poEmailField').style.display = val==='Y' ? 'block' : 'none';
+  }
+  updateProgress();
+}
+
+// =====================================================================
+// ADDRESS AUTOCOMPLETE
+// =====================================================================
+let acTimer = null;
+function addrAC(input, dropId) {
+  const q = input.value.trim();
+  const drop = document.getElementById(dropId);
+  if (q.length<4){drop.style.display='none';return;}
+  clearTimeout(acTimer);
+  acTimer = setTimeout(()=>{
+    if (window.google&&google.maps&&google.maps.places) {
+      new google.maps.places.AutocompleteService().getPlacePredictions(
+        {input:q,componentRestrictions:{country:'au'},types:['address']},
+        (preds,st)=>{
+          if(st!=='OK'||!preds){drop.style.display='none';return;}
+          drop._preds=preds;
+          drop.innerHTML=preds.map((p,i)=>`<div onclick="selectAddr(${i})" style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f0f0;" onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background='white'">📍 ${p.description}</div>`).join('');
+          drop.style.display='block';
+        }
+      );
+    }
+  },350);
+}
+function selectAddr(idx) {
+  const drop = document.getElementById('addrDrop');
+  const pred = drop._preds?.[idx];
+  if(!pred){drop.style.display='none';return;}
+  drop.style.display='none';
+  new google.maps.places.PlacesService(new google.maps.Map(document.createElement('div'))).getDetails(
+    {placeId:pred.place_id,fields:['address_components']},
+    (place,st)=>{
+      if(st!=='OK'||!place) return;
+      const get=t=>place.address_components.find(c=>c.types.includes(t))?.long_name||'';
+      const getS=t=>place.address_components.find(c=>c.types.includes(t))?.short_name||'';
+      document.getElementById('siteAddress').value=[get('street_number'),get('route')].filter(Boolean).join(' ');
+      document.getElementById('suburb').value=get('locality')||get('sublocality');
+      document.getElementById('postcode').value=get('postal_code');
+      const sc=getS('administrative_area_level_1'),se=document.getElementById('state');
+      for(let i=0;i<se.options.length;i++){if(se.options[i].value===sc){se.selectedIndex=i;break;}}
+      updateProgress();
+    }
+  );
+}
+document.addEventListener('click',e=>{
+  const d=document.getElementById('addrDrop');
+  if(d&&!d.contains(e.target)&&e.target.id!=='siteAddress') d.style.display='none';
+});
+
+// =====================================================================
+// GPS
+// =====================================================================
+function getGPS() {
+  const st=document.getElementById('gpsStatus');
+  if(!navigator.geolocation){st.textContent='❌ Not supported';return;}
+  st.textContent='📡 Getting location...';
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const {latitude:la,longitude:lo,accuracy:ac}=pos.coords;
+    try {
+      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${la}&lon=${lo}&zoom=18&addressdetails=1`,{headers:{'Accept-Language':'en-AU'}});
+      const d=await r.json();const a=d.address;
+      document.getElementById('siteAddress').value=[a.house_number,a.road||a.street].filter(Boolean).join(' ');
+      document.getElementById('suburb').value=a.suburb||a.city||a.town||'';
+      document.getElementById('postcode').value=a.postcode||'';
+      const sm={'Western Australia':'WA','New South Wales':'NSW','Victoria':'VIC','Queensland':'QLD','South Australia':'SA','Tasmania':'TAS','Northern Territory':'NT','Australian Capital Territory':'ACT'};
+      const se=document.getElementById('state');const sc=sm[a.state]||'';
+      for(let i=0;i<se.options.length;i++){if(se.options[i].value===sc){se.selectedIndex=i;break;}}
+      st.textContent=`✅ Address filled (±${Math.round(ac)}m) — verify`;st.style.color='var(--green)';
+    } catch(e){st.textContent='⚠️ Could not resolve address';st.style.color='var(--amber)';}
+  },err=>{st.textContent='❌ Could not get location';st.style.color='var(--red)';},{enableHighAccuracy:true,timeout:15000});
+}
+
+// =====================================================================
+// BDM AUTOFILL
+// =====================================================================
+function autoFill(name) {
+  const b=BDM_MAP[name];
+  if(b) document.getElementById('bdmEmail').value=b.email;
+}
+
+// =====================================================================
+// PROGRESS
+// =====================================================================
+function updateProgress() {
+  const req=['customerName','formDate','siteName','siteAddress','completedBy'];
+  const filled=req.filter(id=>document.getElementById(id)?.value?.trim()).length;
+  const ynDone=Object.keys(ynValues).length;
+  const pricingDone=getPricingData().length > 0 ? 1 : 0;
+  const total=req.length+2+1; // +2 YN questions +1 pricing
+  const done=filled+ynDone+pricingDone;
+  const pct=Math.round((done/total)*100);
+  document.getElementById('progressBar').style.width=pct+'%';
+  document.getElementById('progressLabel').textContent=pct+'% complete';
+}
+
+// =====================================================================
+// COLLECT DATA
+// =====================================================================
+function collectData() {
+  const g=id=>document.getElementById(id)?.value||'';
+  const pricing = getPricingData();
+  return {
+    customerName:  g('customerName'),
+    formDate:      g('formDate'),
+    siteName:      g('siteName'),
+    siteNumber:    g('siteNumber'),
+    siteAddress:   g('siteAddress'),
+    suburb:        g('suburb'),
+    state:         g('state'),
+    postcode:      g('postcode'),
+    decisionMaker: g('decisionMaker'),
+    isDistributor: ynValues['distrib']||'',
+    invoiceEmails: g('invoiceEmails'),
+    poRequired:    ynValues['po']||'',
+    poEmail:       g('poEmail'),
+    podEmail:      g('podEmail'),
+    pricing,
+    // freight now captured inline per product row in pricing[]
+    notes:         g('notes'),
+    completedBy:   g('completedBy'),
+    bdmEmail:      g('bdmEmail'),
+    formType:      'Site Administration Form',
+    _savedAt:      new Date().toISOString(),
+  };
+}
+
+// =====================================================================
+// PDF GENERATION
+// =====================================================================
+async function generatePDF(returnDoc=false) {
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const d=collectData();
+  const margin=15,pageW=210,cW=pageW-margin*2;
+  let y=margin;
+  const NAVY=[0,52,102],BLUE=[0,85,165],BL=[232,242,251],GREEN=[0,135,90],RED=[192,57,43],GRAY=[108,117,125],GL=[240,242,244],WHITE=[255,255,255];
+
+  function chk(n=20){if(y+n>280){doc.addPage();y=margin;}}
+  function secHdr(t){chk(14);doc.setFillColor(...NAVY);doc.roundedRect(margin,y,cW,9,1.5,1.5,'F');doc.setTextColor(255,255,255);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(t,margin+3,y+6);y+=12;}
+  function fRow(l,v){chk(8);doc.setTextColor(...GRAY);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(l,margin,y);doc.setTextColor(30,40,50);doc.setFontSize(9);const lines=doc.splitTextToSize(v||'—',cW-2);doc.text(lines,margin,y+4);y+=4+lines.length*4+3;}
+  function twoRow(l1,v1,l2,v2){chk(12);const hw=cW/2-2;doc.setTextColor(...GRAY);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(l1,margin,y);doc.text(l2,margin+cW/2+2,y);y+=4;doc.setTextColor(30,40,50);doc.setFontSize(9);const a=doc.splitTextToSize(v1||'—',hw),b=doc.splitTextToSize(v2||'—',hw);doc.text(a,margin,y);doc.text(b,margin+cW/2+2,y);y+=Math.max(a.length,b.length)*4+4;}
+
+  // Header
+  doc.setFillColor(...NAVY);doc.rect(0,0,210,32,'F');
+  doc.setFillColor(...BLUE);doc.rect(0,28,210,4,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text('BIOBLUE',margin,10);
+  doc.setFontSize(15);doc.setFont('helvetica','bold');doc.text('Site Administration Form',margin,18);
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('Client Setup \u00b7 Pricing \u00b7 Invoicing',margin,24);
+  doc.text(d.formDate?`Date: ${d.formDate}`:'',pageW-margin,18,{align:'right'});
+  doc.text(d.customerName||'',pageW-margin,24,{align:'right'});
+  y=40;
+
+  // S1 Client Details
+  twoRow('Customer / Billing Entity',d.customerName,'Date',d.formDate);
+  twoRow('Site Name',d.siteName,'Site Number',d.siteNumber);
+  fRow('Site Address',[d.siteAddress,d.suburb,d.state,d.postcode].filter(Boolean).join(', '));
+
+  // S2 Contacts
+  secHdr('2. KEY CONTACTS & SITE TYPE');
+  twoRow('Key Decision Maker',d.decisionMaker||'—','Distributor / Reseller Site',d.isDistributor==='Y'?'Yes':d.isDistributor==='N'?'No':'—');
+
+  // S3 Invoicing
+  secHdr('3. INVOICING & PURCHASE ORDERS');
+  fRow('Additional Invoicing Emails',d.invoiceEmails||'—');
+  twoRow('Purchase Orders Required',d.poRequired==='Y'?'Yes':d.poRequired==='N'?'No':'—','PO Delivery Email',d.poEmail||'—');
+  fRow('Site POD Email (TrackPOD)',d.podEmail||'—');
+
+  // S4 Pricing
+  secHdr('4. PRICING');
+  chk(10);
+  // Pricing table header
+  doc.setFillColor(...BLUE);doc.rect(margin,y,cW,7,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(8);doc.setFont('helvetica','bold');
+  doc.text('Product Code',margin+2,y+5);
+  doc.text('Description',margin+50,y+5);
+  doc.text('CPL (¢)',margin+cW-18,y+5);
+  y+=9;
+
+  if(d.pricing.length===0){
+    doc.setFillColor(...GL);doc.rect(margin,y,cW,8,'F');
+    doc.setTextColor(...GRAY);doc.setFontSize(8);doc.setFont('helvetica','italic');
+    doc.text('No products selected',margin+3,y+5.5);y+=11;
+  } else {
+    // Column widths
+    const c1=margin, c2=margin+76, c3=margin+76+50, c4=margin+76+50+47;
+    // Sub-header
+    doc.setFillColor(...BL);doc.rect(margin,y,cW,6,'F');
+    doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');
+    doc.text('PRODUCT',c1+1,y+4.5);doc.text('ACTIVE',c2,y+4.5,{align:'center'});
+    doc.text('PRICE',c3+24,y+4.5,{align:'center'});doc.text('FREIGHT',c4+18,y+4.5,{align:'center'});
+    y+=8;
+    d.pricing.forEach((p,i)=>{
+      const rowH=p.carrier?14:8;
+      chk(rowH+2);
+      doc.setFillColor(i%2===0?255:248,i%2===0?255:250,i%2===0?255:253);
+      doc.rect(margin,y,cW,rowH,'F');
+      doc.setTextColor(0,52,102);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
+      doc.text(p.code,c1+1,y+5);
+      doc.setTextColor(80,90,100);doc.setFontSize(6.5);doc.setFont('helvetica','normal');
+      doc.text(doc.splitTextToSize(p.desc,70)[0],c1+1,y+(rowH>8?9:5)+2.5);
+      doc.setTextColor(...NAVY);doc.setFontSize(8);doc.setFont('helvetica','bold');
+      doc.text('✓',c2,y+5,{align:'center'});
+      // Price
+      const priceStr = p.price ? `${p.price} ${p.priceUnit||''}` : '—';
+      doc.setTextColor(30,40,50);doc.setFontSize(8);doc.setFont('helvetica','normal');
+      doc.text(priceStr,c3+24,y+5,{align:'center'});
+      // Freight
+      const fStr = p.freight ? `${p.freight} ${p.freightUnit||''}` : (p.freightUnit?'—':'BioBlue');
+      doc.text(fStr,c4+18,y+5,{align:'center'});
+      if(p.carrier){doc.setFontSize(6.5);doc.setTextColor(...GRAY);doc.text(`Carrier: ${p.carrier}`,c2,y+10);}
+      y+=rowH+2;
+    });
+  }
+
+  // S5 Notes
+  secHdr('5. NOTES & SIGN-OFF');
+  if(d.notes) fRow('Notes',d.notes);
+  twoRow('Completed By',d.completedBy,'BDM Email',d.bdmEmail);
+
+  // Footer
+  const tp=doc.getNumberOfPages();
+  for(let p=1;p<=tp;p++){
+    doc.setPage(p);doc.setFillColor(...GL);doc.rect(0,287,210,10,'F');
+    doc.setTextColor(...GRAY);doc.setFontSize(6.5);doc.setFont('helvetica','normal');
+    doc.text('BioBlue Site Administration Form \u00b7 Confidential \u00b7 V1 2026',margin,293);
+    doc.text(`Page ${p} of ${tp}`,pageW-margin,293,{align:'right'});
+    doc.text(new Date().toLocaleString('en-AU'),pageW/2,293,{align:'center'});
+  }
+
+  if(returnDoc) return doc;
+  doc.save(`BioBlue_Site_Admin_${d.customerName.replace(/\s+/g,'_')||'Draft'}_${d.formDate||'undated'}.pdf`);
+  showToast('📄 PDF downloaded!');
+}
+
+// =====================================================================
+// DRIVE UPLOAD + CLIENT RECORD UPDATE
+// =====================================================================
+async function getDriveToken() {
+  if(gdriveToken) return;
+  await new Promise((resolve,reject)=>{
+    const client=google.accounts.oauth2.initTokenClient({
+      client_id:GDRIVE_CLIENT_ID,
+      scope:'https://www.googleapis.com/auth/drive.file',
+      callback:r=>{if(r.access_token){gdriveToken=r.access_token;resolve();}else reject(new Error(r.error||'Sign-in failed'));},
+      error_callback:e=>reject(new Error(e.message||'Sign-in failed'))
+    });
+    client.requestAccessToken({prompt:''});
+  });
+}
+async function getFolderId() {
+  const r=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,{headers:{Authorization:`Bearer ${gdriveToken}`}});
+  const d=await r.json();
+  if(d.files&&d.files.length>0) return d.files[0].id;
+  const cr=await fetch('https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{Authorization:`Bearer ${gdriveToken}`,'Content-Type':'application/json'},body:JSON.stringify({name:GDRIVE_FOLDER_NAME,mimeType:'application/vnd.google-apps.folder'})});
+  return (await cr.json()).id;
+}
+
+async function updateClientRecord(d, folderId) {
+  const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${CLIENT_RECORDS_NAME}' and '${folderId}' in parents and trashed=false&fields=files(id)`,{headers:{Authorization:`Bearer ${gdriveToken}`}});
+  const sd=await sr.json();
+  if(!sd.files||!sd.files.length){console.warn('Client Records sheet not found');return;}
+  const fileId=sd.files[0].id;
+  const dl=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,{headers:{Authorization:`Bearer ${gdriveToken}`}});
+  const ab=await dl.arrayBuffer();
+  const wb=XLSX.read(new Uint8Array(ab),{type:'array'});
+  const ws=wb.Sheets['Client Records'];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+  const headers=rows[0]||[];
+  const nameCol=headers.indexOf('Billing Entity');
+  const adminCol=headers.indexOf('Site Admin ✓');
+  const notesCol=headers.indexOf('Notes Log');
+
+  const pricingSummary=d.pricing.map(p=>`${p.code}: ${p.price||'—'} ${p.priceUnit||''} | freight: ${p.freight||'—'} ${p.freightUnit||''}${p.carrier?' ('+p.carrier+')':''}`).join(' | ');
+  const noteEntry=`[Site Admin — ${new Date().toLocaleDateString('en-AU')}, ${d.completedBy}]\n${d.notes||'Site admin form completed.'}\nPricing: ${pricingSummary||'none recorded'}`;
+
+  let rowIdx=-1;
+  for(let i=1;i<rows.length;i++){
+    if(rows[i][nameCol]&&rows[i][nameCol].toString().toLowerCase()===d.customerName.toLowerCase()){rowIdx=i;break;}
+  }
+
+  if(rowIdx>-1){
+    if(adminCol>-1) rows[rowIdx][adminCol]='✓';
+    if(notesCol>-1) rows[rowIdx][notesCol]=(rows[rowIdx][notesCol]?rows[rowIdx][notesCol]+'\n\n':'')+noteEntry;
+  } else {
+    const existingIds=rows.slice(1).map(r=>r[0]).filter(Boolean);
+    const maxId=existingIds.reduce((m,id)=>{const n=parseInt((id+'').replace('BB-',''));return isNaN(n)?m:n>m?n:m;},0);
+    const newId=`BB-${String(maxId+1).padStart(4,'0')}`;
+    const newRow=new Array(headers.length).fill('');
+    const set=(col,val)=>{const i=headers.indexOf(col);if(i>-1)newRow[i]=val;};
+    set('Client ID',newId);set('Billing Entity',d.customerName);set('Site Name',d.siteName);
+    set('Street Address',d.siteAddress);set('Suburb',d.suburb);set('State',d.state);set('Postcode',d.postcode);
+    set('Site Admin ✓','✓');
+    set('Created Date',new Date().toLocaleDateString('en-AU'));set('Created By',d.completedBy);
+    set('Notes Log',noteEntry);
+    rows.push(newRow);
+  }
+
+  // Notes Log tab
+  const nws=wb.Sheets['Notes Log'];
+  if(nws){
+    const nr=XLSX.utils.sheet_to_json(nws,{header:1});
+    nr.push([rowIdx>-1?rows[rowIdx][headers.indexOf('Client ID')]:'',d.customerName,d.siteName,new Date().toLocaleString('en-AU'),'Site Admin Form',d.completedBy,d.notes||'Site admin form completed.']);
+    wb.Sheets['Notes Log']=XLSX.utils.aoa_to_sheet(nr);
+  }
+
+  const newWs=XLSX.utils.aoa_to_sheet(rows);
+  newWs['!cols']=headers.map((h,i)=>({wch:i===notesCol?60:i<4?20:16}));
+  newWs['!freeze']={xSplit:0,ySplit:1};
+  wb.Sheets['Client Records']=newWs;
+  const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const form=new FormData();
+  form.append('metadata',new Blob([JSON.stringify({})],{type:'application/json'}));
+  form.append('file',blob,CLIENT_RECORDS_NAME);
+  await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`,{method:'PATCH',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+}
+
+async function downloadPDF() {
+  showToast('⏳ Generating PDF...');
+  try{await generatePDF(false);}catch(e){showToast('❌ '+e.message);}
+}
+
+async function uploadAndSend() {
+  const d=collectData();
+  if(!d.customerName.trim()){showToast('⚠️ Customer name required');return;}
+  if(!d.formDate){showToast('⚠️ Date required');return;}
+  if(!d.siteName.trim()){showToast('⚠️ Site name required');return;}
+  if(!d.completedBy){showToast('⚠️ Please select who completed the form');return;}
+
+  showToast('⏳ Generating PDF...');
+  const pdfDoc=await generatePDF(true);
+  const pdfBlob=pdfDoc.output('blob');
+  const baseName=`BioBlue_Site_Admin_${d.customerName.replace(/\s+/g,'_')}_${d.formDate||'undated'}`;
+
+  try {
+    showToast('☁️ Connecting to Google...');
+    await getDriveToken();
+    const folderId=await getFolderId();
+    const form=new FormData();
+    form.append('metadata',new Blob([JSON.stringify({name:baseName+'.pdf',parents:[folderId]})],{type:'application/json'}));
+    form.append('file',pdfBlob,baseName+'.pdf');
+    const up=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',{method:'POST',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+    const uploaded=await up.json();
+    showToast('📊 Updating client record...');
+    await updateClientRecord(d,folderId);
+    document.getElementById('modalMsg').textContent=`✅ Site Admin Form submitted!\n\n☁️ PDF uploaded to Google Drive\n📊 Client record updated — Site Admin ✓\n${uploaded.webViewLink?'\nDrive link:\n'+uploaded.webViewLink:''}`;
+    document.getElementById('modal').classList.add('active');
+  } catch(e) {
+    gdriveToken=null;
+    const url=URL.createObjectURL(pdfBlob);
+    const a=document.createElement('a');a.href=url;a.download=baseName+'.pdf';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+    document.getElementById('modalMsg').textContent=`⚠️ Drive upload failed: ${e.message}\n\nPDF saved to device instead.`;
+    document.getElementById('modal').classList.add('active');
+  }
+}
+
+// =====================================================================
+// CLEAR + UTILS
+// =====================================================================
+function confirmClear() {
+  if(confirm('Clear all form data?')){clearAll();showToast('✅ Form cleared');}
+}
+function clearAll() {
+  ['customerName','formDate','siteName','siteNumber','siteAddress','suburb','postcode',
+   'decisionMaker','invoiceEmails','poEmail','podEmail','notes','bdmEmail','carrier',
+   'freightBulkCPL','freightPackCPL'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('state').selectedIndex=0;
+  document.getElementById('completedBy').selectedIndex=0;
+  document.getElementById('poEmailField').style.display='none';
+  for(const k in ynValues) delete ynValues[k];
+  ['yn-distrib','yn-po'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.remove('yes','no');el.querySelectorAll('.yn-btn').forEach(b=>b.classList.remove('active-y','active-n'));}});
+  PRODUCTS.filter(p=>!p.spacer).forEach(p=>{
+    const sc=p.code.replace(/-/g,'_');
+    const chk=document.getElementById('chk_'+sc);if(chk)chk.checked=false;
+    const pr=document.getElementById('price_'+sc);if(pr)pr.value='';
+    const fr=document.getElementById('freight_'+sc);if(fr)fr.value='';
+    const ca=document.getElementById('carrier_'+sc);if(ca){ca.value='';ca.style.display='none';}
+    const row=document.getElementById('row_'+sc);if(row)row.style.background='';
+  });
+  buildPricingTable();
+  updateProgress();
+}
+function toggleSection(id){const b=document.getElementById(id),t=document.getElementById('toggle-'+id);if(!b)return;const c=b.classList.toggle('collapsed');if(t)t.textContent=c?'▶':'▼';}
+function closeModal(){document.getElementById('modal').classList.remove('active');}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+// INIT
+document.addEventListener('DOMContentLoaded',()=>{
+  buildPricingTable();
+  document.getElementById('formDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('completedBy').value='Michael Hodnett';
+  autoFill('Michael Hodnett');
+  updateProgress();
+});
+</script>
+</body>
+</html>
