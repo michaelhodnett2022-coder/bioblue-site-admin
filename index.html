@@ -137,6 +137,35 @@
 </div>
 
 <div class="main-content">
+  <!-- CLIENT BANNER -->
+  <div id="clientBanner" style="display:none;align-items:center;gap:12px;
+      background:#fef5e7;border:1.5px solid #e67e22;
+      border-radius:10px;padding:12px 16px;margin:16px 16px 0;flex-wrap:wrap;">
+    <div style="font-size:20px;">🏢</div>
+    <div style="flex:1;">
+      <div style="font-size:11px;font-weight:700;color:#e67e22;text-transform:uppercase;letter-spacing:0.5px;">Active Client</div>
+      <div style="font-size:14px;font-weight:700;color:#1f2937;" id="bannerClientName">Loading...</div>
+      <div style="font-size:11px;color:#6b7280;" id="bannerClientId"></div>
+    </div>
+    <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#e67e22;text-decoration:none;
+        background:white;border:1.5px solid #e67e22;border-radius:6px;padding:5px 10px;">
+      Change Client
+    </a>
+  </div>
+  <div id="noClientBanner" style="display:none;align-items:center;gap:12px;
+      background:#fff7ed;border:1.5px solid #f59e0b;
+      border-radius:10px;padding:12px 16px;margin:16px 16px 0;">
+    <div style="font-size:20px;">⚠️</div>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:700;color:#92400e;">No client selected</div>
+      <div style="font-size:12px;color:#78350f;">Go back to Field Tools and select a client first</div>
+    </div>
+    <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#92400e;text-decoration:none;
+        background:white;border:1.5px solid #f59e0b;border-radius:6px;padding:5px 10px;white-space:nowrap;">
+      ← Field Tools
+    </a>
+  </div>
+
 
   <!-- SECTION 1: CLIENT DETAILS -->
   <div class="section-card">
@@ -213,10 +242,12 @@
       <div class="section-toggle" id="toggle-s2">▼</div>
     </div>
     <div class="section-body" id="s2">
-      <div class="field-row full">
-        <div class="field-group">
-          <label class="field-label">Key Decision Maker <span style="font-size:10px;font-weight:400;color:var(--gray-mid);">(if different to main billing contact)</span></label>
-          <input type="text" id="decisionMaker" placeholder="Full name">
+      <div class="field-group" style="margin-bottom:12px;">
+        <label class="field-label">Key Decision Maker <span style="font-size:10px;font-weight:400;color:var(--gray-mid);">(if different to main billing contact)</span></label>
+        <input type="text" id="decisionMaker" placeholder="Full name" style="margin-bottom:6px;">
+        <div class="field-row" style="margin-bottom:0;">
+          <input type="tel" id="decisionMakerPhone" placeholder="Mobile" style="margin-bottom:0;">
+          <input type="email" id="decisionMakerEmail" placeholder="Email" style="margin-bottom:0;">
         </div>
       </div>
 
@@ -569,16 +600,21 @@ function getPricingData() {
 function setYN(id, val) {
   ynValues[id] = val;
   const item = document.getElementById('yn-'+id);
-  if (!item) return;
-  item.classList.remove('yes','no');
-  item.classList.add(val==='Y'?'yes':'no');
-  item.querySelectorAll('.yn-btn').forEach(b=>{
-    b.classList.remove('active-y','active-n');
-    if(b.textContent==='Y'&&val==='Y') b.classList.add('active-y');
-    if(b.textContent==='N'&&val==='N') b.classList.add('active-n');
-  });
+  if (item) {
+    item.classList.remove('yes','no');
+    item.classList.add(val==='Y'?'yes':'no');
+    item.querySelectorAll('.yn-btn').forEach(b=>{
+      b.classList.remove('active-y','active-n');
+      if (b.textContent.trim()==='Y' && val==='Y') b.classList.add('active-y');
+      if (b.textContent.trim()==='N' && val==='N') b.classList.add('active-n');
+    });
+  }
   if (id==='po') {
-    document.getElementById('poEmailField').style.display = val==='Y' ? 'block' : 'none';
+    const pf = document.getElementById('poEmailField');
+    if (pf) pf.style.display = val==='Y' ? 'block' : 'none';
+  }
+  if (id==='distrib') {
+    // Visual feedback for distributor question
   }
   updateProgress();
 }
@@ -693,6 +729,8 @@ function collectData() {
     state:         g('state'),
     postcode:      g('postcode'),
     decisionMaker: g('decisionMaker'),
+    decisionMakerPhone: g('decisionMakerPhone'),
+    decisionMakerEmail: g('decisionMakerEmail'),
     isDistributor: ynValues['distrib']||'',
     invoiceEmails: g('invoiceEmails'),
     poRequired:    ynValues['po']||'',
@@ -742,6 +780,7 @@ async function generatePDF(returnDoc=false) {
   // S2 Contacts
   secHdr('2. KEY CONTACTS & SITE TYPE');
   twoRow('Key Decision Maker',d.decisionMaker||'—','Distributor / Reseller Site',d.isDistributor==='Y'?'Yes':d.isDistributor==='N'?'No':'—');
+  if(d.decisionMakerPhone||d.decisionMakerEmail) twoRow('DM Phone',d.decisionMakerPhone||'—','DM Email',d.decisionMakerEmail||'—');
 
   // S3 Invoicing
   secHdr('3. INVOICING & PURCHASE ORDERS');
@@ -961,6 +1000,8 @@ async function uploadAndSend() {
     showToast('📊 Updating client record...');
     await updateClientRecord(d,folderId);
     document.getElementById('modalMsg').textContent=`✅ Site Admin Form submitted!\n\n☁️ PDF uploaded to Google Drive\n📊 Client record updated — Site Admin ✓\n${uploaded.webViewLink?'\nDrive link:\n'+uploaded.webViewLink:''}`;
+    const _aid = new URLSearchParams(window.location.search).get('client');
+    redirectToFieldTools(_aid||'');
     document.getElementById('modal').classList.add('active');
   } catch(e) {
     gdriveToken=null;
@@ -981,7 +1022,8 @@ function confirmClear() {
 }
 function clearAll() {
   ['customerName','formDate','siteName','siteNumber','siteAddress','suburb','postcode',
-   'decisionMaker','invoiceEmails','poEmail','podEmail','notes','bdmEmail','carrier',
+   'decisionMaker','decisionMakerPhone','decisionMakerEmail',
+   'invoiceEmails','poEmail','podEmail','notes','bdmEmail','carrier',
    'freightBulkCPL','freightPackCPL'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('state').selectedIndex=0;
   document.getElementById('completedBy').selectedIndex=0;
@@ -1004,6 +1046,7 @@ function clearAll() {
     const row=document.getElementById('row_'+sc);if(row)row.style.background='';
   });
   buildPricingTable();
+  loadClientFromURL();
   updateProgress();
 }
 function toggleSection(id){const b=document.getElementById(id),t=document.getElementById('toggle-'+id);if(!b)return;const c=b.classList.toggle('collapsed');if(t)t.textContent=c?'▶':'▼';}
@@ -1018,6 +1061,129 @@ document.addEventListener('DOMContentLoaded',()=>{
   autoFill('Michael Hodnett');
   updateProgress();
 });
+
+// =====================================================================
+// CLIENT PRE-FILL — reads ?client=BB-XXXX from URL
+// =====================================================================
+async function loadClientFromURL() {
+  const params   = new URLSearchParams(window.location.search);
+  const clientId = params.get('client');
+  const banner   = document.getElementById('clientBanner');
+  const noBanner = document.getElementById('noClientBanner');
+
+  if (!clientId) {
+    if (noBanner) noBanner.style.display = 'flex';
+    return;
+  }
+
+  if (banner) {
+    banner.style.display = 'flex';
+    document.getElementById('bannerClientId').textContent = clientId;
+  }
+
+  // Get Drive token
+  try {
+    if (!gdriveToken) {
+      await new Promise((resolve, reject) => {
+        const client = google.accounts.oauth2.initTokenClient({
+          client_id: GDRIVE_CLIENT_ID,
+          scope: 'https://www.googleapis.com/auth/drive.file',
+          callback: r => {
+            if (r.access_token) { gdriveToken = r.access_token; resolve(); }
+            else reject(new Error(r.error || 'Sign-in failed'));
+          },
+          error_callback: e => reject(new Error(e.message || 'Sign-in failed'))
+        });
+        client.requestAccessToken({ prompt: '' });
+      });
+    }
+
+    // Find folder + sheet
+    const fr = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='BioBlue Audits' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    const fd  = await fr.json();
+    if (!fd.files || !fd.files.length) return;
+
+    const sr = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='BioBlue_Client_Records.xlsx' and '${fd.files[0].id}' in parents and trashed=false&fields=files(id)`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    const sd = await sr.json();
+    if (!sd.files || !sd.files.length) return;
+
+    const dl  = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${sd.files[0].id}?alt=media`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    const ab   = await dl.arrayBuffer();
+    const wb   = XLSX.read(new Uint8Array(ab), { type: 'array' });
+    const ws   = wb.Sheets['Client Records'];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    const hdrs = rows[0] || [];
+
+    // Find matching row
+    const idCol = hdrs.indexOf('Client ID');
+    const row   = rows.slice(1).find(r => r[idCol] === clientId);
+    if (!row) { showToast('⚠️ Client ' + clientId + ' not found in records'); return; }
+
+    // Map fields
+    const get = col => { const i = hdrs.indexOf(col); return (i > -1 && row[i]) ? row[i].toString() : ''; };
+
+    // Fill common Section 1 fields — each form uses the same IDs
+    const fields = {
+      customerName:  get('Billing Entity'),
+      companyName:   get('Billing Entity'),
+      siteName:      get('Site Name') || get('Billing Entity'),
+      siteAddress:   get('Street Address'),
+      suburb:        get('Suburb'),
+      postcode:      get('Postcode'),
+      contactName:   get('Contact Name'),
+      contactRole:   get('Contact Title'),
+      contactMobile: get('Contact Mobile'),
+      contactEmail:  get('Contact Email'),
+      contactPhone:  get('Contact Mobile'),
+      siteContact:   get('Contact Name'),
+      siteMobile:    get('Contact Mobile'),
+      siteEmail:     get('Contact Email'),
+    };
+
+    Object.entries(fields).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el && val) el.value = val;
+    });
+
+    // State dropdown
+    const stateVal = get('State');
+    const stateEl  = document.getElementById('state');
+    if (stateEl && stateVal) {
+      for (let i = 0; i < stateEl.options.length; i++) {
+        if (stateEl.options[i].value === stateVal) { stateEl.selectedIndex = i; break; }
+      }
+    }
+
+    // Update banner with client name
+    const nameEl = document.getElementById('bannerClientName');
+    if (nameEl) nameEl.textContent = get('Billing Entity') || clientId;
+
+    updateProgress();
+    showToast('✅ Client details loaded — ' + (get('Billing Entity') || clientId));
+
+  } catch(e) {
+    showToast('⚠️ Could not load client: ' + e.message);
+  }
+}
+
+
+// =====================================================================
+// AUTO-REDIRECT TO FIELD TOOLS AFTER SUBMISSION
+// =====================================================================
+function redirectToFieldTools(clientId) {
+  const base = 'https://michaelhodnett2022-coder.github.io/bioblue-field-tools';
+  const url  = clientId ? base + '?returning=' + clientId : base;
+  setTimeout(() => { window.location.href = url; }, 2500);
+}
 </script>
 </body>
 </html>
