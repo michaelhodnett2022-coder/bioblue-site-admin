@@ -22,9 +22,9 @@
   * { box-sizing:border-box;margin:0;padding:0; }
   body { font-family:'DM Sans',sans-serif;background:#f0f4f8;color:var(--gray-dark);min-height:100vh;font-size:15px;-webkit-font-smoothing:antialiased; }
 
-  .app-header { background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);color:white;padding:20px 20px 16px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-lg); }
+  .app-header { background:linear-gradient(135deg,#d35400 0%,#e67e22 100%);color:white;padding:20px 20px 16px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-lg); }
   .header-top { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px; }
-  .logo-badge { background:rgba(255,255,255,0.2);border-radius:8px;padding:6px 10px;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:1px;color:#a8d4f5; }
+  .logo-badge { background:rgba(255,255,255,0.2);border-radius:8px;padding:6px 10px;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:1px;color:#fde68a; }
   .header-title { font-size:17px;font-weight:700; }
   .header-subtitle { font-size:12px;opacity:0.7;font-weight:300; }
   .progress-bar-wrap { background:rgba(255,255,255,0.15);border-radius:4px;height:5px;overflow:hidden;margin-top:10px; }
@@ -34,7 +34,7 @@
   .main-content { max-width:820px;margin:0 auto;padding:20px 16px 100px; }
 
   .section-card { background:white;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden; }
-  .section-header { background:var(--navy);color:white;padding:14px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none; }
+  .section-header { background:#d35400;color:white;padding:14px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none; }
   .section-header-icon { background:rgba(255,255,255,0.2);border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0; }
   .section-header-text { flex:1; }
   .section-header h2 { font-size:14px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase; }
@@ -76,7 +76,7 @@
 
   /* PRICING TABLE */
   .pricing-table { width:100%;border-collapse:collapse;margin-top:8px; }
-  .pricing-table th { background:var(--navy);color:white;padding:10px 12px;font-size:12px;font-weight:700;text-align:left;letter-spacing:0.3px; }
+  .pricing-table th { background:#d35400;color:white;padding:10px 12px;font-size:12px;font-weight:700;text-align:left;letter-spacing:0.3px; }
   .pricing-table th:last-child { text-align:center;width:80px; }
   .pricing-table td { padding:8px 12px;border-bottom:1px solid var(--gray-light);font-size:13px;vertical-align:middle; }
   .pricing-table tr:nth-child(even) td { background:var(--gray-pale); }
@@ -99,8 +99,8 @@
   .sticky-footer .btn { padding:12px 8px;font-size:13px;font-weight:700;border-radius:var(--radius-sm);text-align:center;white-space:nowrap;width:100%;cursor:pointer;font-family:'DM Sans',sans-serif;border:none; }
   .btn-clear { background:white;color:var(--red);border:2px solid var(--red)!important; }
   .btn-dl    { background:white;color:var(--navy);border:2px solid var(--navy)!important; }
-  .btn-submit { background:var(--navy);color:white; }
-  .btn-submit:hover { background:var(--blue); }
+  .btn-submit { background:#d35400;color:white; }
+  .btn-submit:hover { background:#f39c12; }
 
   .modal-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;padding:20px; }
   .modal-overlay.active { display:flex; }
@@ -125,6 +125,7 @@
     <div style="display:flex;align-items:center;gap:10px;">
       <div class="logo-badge">BIOBLUE</div>
       <div>
+        <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.8);text-decoration:none;margin-bottom:4px;">← Field Tools</a>
         <div class="header-title">Site Administration Form</div>
         <div class="header-subtitle">Client Setup · Pricing · Invoicing</div>
       </div>
@@ -289,6 +290,14 @@
 
       <p style="font-size:12px;color:var(--gray-mid);margin-bottom:12px;">Tick all product codes that apply to this site and enter the agreed CPL rate for each.</p>
 
+      <div id="bulkTableWrap"></div>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="flex:1;height:2px;background:var(--blue-light);"></div>
+        <span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--blue);white-space:nowrap;">Packaged Products</span>
+        <div style="flex:1;height:2px;background:var(--blue-light);"></div>
+      </div>
+
       <table class="pricing-table" style="table-layout:fixed;width:100%;">
         <colgroup>
           <col style="width:44%;">
@@ -300,8 +309,8 @@
           <tr>
             <th>Product Code</th>
             <th style="text-align:center;">Active</th>
-            <th style="text-align:center;">Price</th>
-            <th style="text-align:center;">Freight</th>
+            <th style="text-align:center;">Price ($/unit)</th>
+            <th style="text-align:center;">Freight ($/pallet)</th>
           </tr>
         </thead>
         <tbody id="pricingRows"></tbody>
@@ -382,61 +391,139 @@ const BDM_MAP = {
 // =====================================================================
 // PRICING TABLE
 // =====================================================================
+// Bulk product (single row)
+const BULK_PRODUCT = { code:'BB-ADB-Bulk', desc:'Bulk AdBlue®' };
+
+// Packaged products
 const PRODUCTS = [
-  { code:'BB-ADB-Bulk',         desc:'Bulk AdBlue® (BioBlue Delivered)',             priceUnit:null,    freightUnit:'¢/L',            hasFreight:true,  freightOnly:true, hasCarrier:false },
-  { code:'BB-ADB-Bulk-Freight', desc:'Bulk freight component',                       priceUnit:null,    freightUnit:'¢/L',            hasFreight:true,  freightOnly:true, hasCarrier:false },
-  { code:'_SPACER',             desc:'',                                              spacer:true },
-  { code:'BB-ADB-1000',         desc:'AdBlue® 1,000L IBC',                           priceUnit:'$/unit', freightUnit:'$/pallet space', hasFreight:true  },
-  { code:'BB-ADB-210',          desc:'AdBlue® 210L drum',                            priceUnit:'$/unit', freightUnit:'$/pallet space', hasFreight:true  },
-  { code:'BB-ADB-20',           desc:'AdBlue® 20L container',                        priceUnit:'$/unit', freightUnit:'$/pallet space', hasFreight:true  },
-  { code:'BB-ADB-15',           desc:'AdBlue® 15L container',                        priceUnit:'$/unit', freightUnit:'$/pallet space', hasFreight:true  },
-  { code:'BB-ADB-10',           desc:'AdBlue® 10L container',                        priceUnit:'$/unit', freightUnit:'$/pallet space', hasFreight:true  },
-  { code:'BB-ADB-01',           desc:'AdBlue® 1L bottle',                            priceUnit:'$/unit', freightUnit:'$/pallet space', hasFreight:true  },
-  { code:'OTHER',               desc:'Other product / special pricing',              priceUnit:'$/unit', freightUnit:'$/pallet space', hasFreight:true,  other:true },
-  { code:'BB-ADB-Pack',         desc:'Packaged AdBlue® freight (all pack products)', priceUnit:null,    freightUnit:'$/pallet space', hasFreight:true,  freightOnly:true, hasCarrier:true },
+  { code:'BB-ADB-1000', desc:'AdBlue® 1,000L IBC'           },
+  { code:'BB-ADB-210',  desc:'AdBlue® 210L drum'            },
+  { code:'BB-ADB-20',   desc:'AdBlue® 20L container'        },
+  { code:'BB-ADB-15',   desc:'AdBlue® 15L container'        },
+  { code:'BB-ADB-10',   desc:'AdBlue® 10L container'        },
+  { code:'BB-ADB-01',   desc:'AdBlue® 1L bottle'            },
+  { code:'OTHER',       desc:'Other product / special pricing', other:true },
+  { code:'BB-ADB-Pack', desc:'Packaged freight (all pack products)', freightOnly:true, hasCarrier:true },
 ];
 
 function buildPricingTable() {
+  // ── BULK TABLE ──────────────────────────────────────────────────
+  const bulkContainer = document.getElementById('bulkTableWrap');
+  bulkContainer.innerHTML = `
+    <table class="pricing-table" style="table-layout:fixed;width:100%;margin-bottom:16px;">
+      <colgroup>
+        <col style="width:30%;">
+        <col style="width:10%;">
+        <col style="width:17%;">
+        <col style="width:17%;">
+        <col style="width:13%;">
+        <col style="width:13%;">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Bulk Product</th>
+          <th style="text-align:center;">Active</th>
+          <th style="text-align:center;">Bulk CPL</th>
+          <th style="text-align:center;">Freight CPL</th>
+          <th style="text-align:center;">Delivered?</th>
+          <th style="text-align:center;">Delivered Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr id="row_bulk">
+          <td>
+            <span class="price-code">BB-ADB-Bulk</span>
+            <div class="price-desc">Bulk AdBlue® (BioBlue Delivered)</div>
+          </td>
+          <td style="text-align:center;vertical-align:middle;">
+            <input type="checkbox" class="price-check" id="chk_bulk"
+              onchange="onBulkTick(this.checked);updateProgress()">
+          </td>
+          <td>
+            <input type="text" class="price-input" id="bulk_cpl"
+              placeholder="¢/L" style="width:100%;"
+              oninput="calcDelivered()">
+          </td>
+          <td>
+            <input type="text" class="price-input" id="bulk_freight"
+              placeholder="¢/L" style="width:100%;"
+              oninput="calcDelivered()">
+          </td>
+          <td style="text-align:center;vertical-align:middle;">
+            <label style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;">
+              <input type="checkbox" class="price-check" id="bulk_delivered_chk"
+                onchange="toggleDelivered(this.checked);calcDelivered()">
+              <span style="font-size:9px;color:var(--gray-mid);font-weight:600;text-align:center;line-height:1.2;">Delivered<br>Price</span>
+            </label>
+          </td>
+          <td>
+            <input type="text" class="price-input" id="bulk_delivered_price"
+              placeholder="¢/L" style="width:100%;background:#f0f4f8;color:var(--gray-mid);"
+              readonly>
+          </td>
+        </tr>
+      </tbody>
+    </table>`;
+
+  // ── PACKAGED TABLE ──────────────────────────────────────────────
   const tbody = document.getElementById('pricingRows');
   tbody.innerHTML = PRODUCTS.map((p,i) => {
-    // Spacer row
-    if (p.spacer) return `<tr>
-      <td colspan="4" style="padding:8px 12px 6px;border:none;background:transparent;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="flex:1;height:2px;background:var(--blue-light);"></div>
-          <span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--blue);white-space:nowrap;">Packaged Products</span>
-          <div style="flex:1;height:2px;background:var(--blue-light);"></div>
-        </div>
-      </td>
-    </tr>`;
-
     const safeCode = p.code.replace(/-/g,'_');
     const priceCell = p.freightOnly
       ? '<span style="font-size:11px;color:var(--gray-mid);font-style:italic;">Freight only</span>'
-      : p.priceUnit
-        ? `<input type="text" class="price-input" id="price_${safeCode}" placeholder="${p.priceUnit}" style="width:100%;">`
-        : '';
-    const freightCell = p.hasFreight
-      ? `<div style="display:flex;flex-direction:column;gap:4px;">
-           <input type="text" class="price-input" id="freight_${safeCode}" placeholder="${p.freightUnit}" style="width:100%;">
-           ${p.hasCarrier ? `<input type="text" id="carrier_${safeCode}" placeholder="Carrier..." style="display:none;padding:5px 8px;border:1.5px solid var(--blue-light);border-radius:6px;font-size:11px;font-family:DM Sans,sans-serif;background:var(--blue-pale);width:100%;" oninput="updateProgress()">` : ''}
-         </div>`
-      : '<span style="font-size:11px;color:var(--gray-mid);font-style:italic;">BioBlue</span>';
+      : `<input type="text" class="price-input" id="price_${safeCode}" placeholder="$/unit" style="width:100%;">`;
+    const freightCell = `<div style="display:flex;flex-direction:column;gap:4px;">
+        <input type="text" class="price-input" id="freight_${safeCode}" placeholder="$/pallet" style="width:100%;">
+        ${p.hasCarrier ? `<input type="text" id="carrier_${safeCode}" placeholder="Carrier..." style="display:none;padding:5px 8px;border:1.5px solid var(--blue-light);border-radius:6px;font-size:11px;background:var(--blue-pale);width:100%;">` : ''}
+      </div>`;
     return `<tr id="row_${safeCode}">
       <td>
         <span class="price-code">${p.code}</span>
-        ${p.other ? `<br><input type="text" id="otherCode" placeholder="Product code..." style="margin-top:5px;padding:4px 7px;border:1.5px solid var(--gray-light);border-radius:5px;font-size:11px;font-family:DM Mono,monospace;width:130px;">` : ''}
-        <div class="price-desc" style="margin-top:2px;">${p.desc}</div>
+        ${p.other ? `<br><input type="text" id="otherCode" placeholder="Product code..." style="margin-top:5px;padding:4px 7px;border:1.5px solid var(--gray-light);border-radius:5px;font-size:11px;font-family:'DM Mono',monospace;width:130px;">` : ''}
+        <div class="price-desc">${p.desc}</div>
         ${p.other ? `<input type="text" id="otherDesc" placeholder="Description..." style="margin-top:3px;padding:4px 7px;border:1.5px solid var(--gray-light);border-radius:5px;font-size:11px;width:100%;">` : ''}
       </td>
       <td style="text-align:center;vertical-align:middle;">
-        <input type="checkbox" class="price-check" id="chk_${safeCode}" onchange="onProductTick('${p.code}',this.checked);updateProgress()">
+        <input type="checkbox" class="price-check" id="chk_${safeCode}"
+          onchange="onProductTick('${p.code}',this.checked);updateProgress()">
       </td>
       <td>${priceCell}</td>
       <td>${freightCell}</td>
     </tr>`;
   }).join('');
 }
+
+function onBulkTick(checked) {
+  const row = document.getElementById('row_bulk');
+  if (row) row.style.background = checked ? 'var(--green-light)' : '';
+  if (!checked) {
+    document.getElementById('bulk_cpl').value = '';
+    document.getElementById('bulk_freight').value = '';
+    document.getElementById('bulk_delivered_chk').checked = false;
+    document.getElementById('bulk_delivered_price').value = '';
+    toggleDelivered(false);
+  }
+}
+
+function toggleDelivered(show) {
+  const el = document.getElementById('bulk_delivered_price');
+  if (el) {
+    el.style.background = show ? 'var(--green-light)' : '#f0f4f8';
+    el.style.color = show ? 'var(--green)' : 'var(--gray-mid)';
+    el.style.fontWeight = show ? '700' : '400';
+    el.style.borderColor = show ? 'var(--green)' : 'var(--gray-light)';
+  }
+}
+
+function calcDelivered() {
+  const chk = document.getElementById('bulk_delivered_chk')?.checked;
+  if (!chk) { document.getElementById('bulk_delivered_price').value = ''; return; }
+  const bulk = parseFloat(document.getElementById('bulk_cpl').value) || 0;
+  const freight = parseFloat(document.getElementById('bulk_freight').value) || 0;
+  const total = (bulk + freight).toFixed(2);
+  document.getElementById('bulk_delivered_price').value = total > 0 ? total : '';
+}
+
 
 function onProductTick(code, checked) {
   const safeCode = code.replace(/-/g,'_');
@@ -450,24 +537,35 @@ function onProductTick(code, checked) {
 }
 
 function getPricingData() {
-  return PRODUCTS.map(p => {
+  const results = [];
+  // Bulk
+  const bulkActive = document.getElementById('chk_bulk')?.checked || false;
+  if (bulkActive) {
+    results.push({
+      code: 'BB-ADB-Bulk',
+      desc: 'Bulk AdBlue® (BioBlue Delivered)',
+      active: true,
+      bulkCPL: document.getElementById('bulk_cpl')?.value?.trim() || '',
+      freightCPL: document.getElementById('bulk_freight')?.value?.trim() || '',
+      deliveredRequired: document.getElementById('bulk_delivered_chk')?.checked || false,
+      deliveredPrice: document.getElementById('bulk_delivered_price')?.value?.trim() || '',
+      type: 'bulk',
+    });
+  }
+  // Packaged
+  PRODUCTS.forEach(p => {
     const safeCode = p.code.replace(/-/g,'_');
     const active  = document.getElementById('chk_'+safeCode)?.checked || false;
+    if (!active) return;
     const price   = document.getElementById('price_'+safeCode)?.value?.trim() || '';
     const freight = document.getElementById('freight_'+safeCode)?.value?.trim() || '';
     const carrier = document.getElementById('carrier_'+safeCode)?.value?.trim() || '';
     const code    = p.other ? (document.getElementById('otherCode')?.value?.trim() || 'OTHER') : p.code;
     const desc    = p.other ? (document.getElementById('otherDesc')?.value?.trim() || p.desc) : p.desc;
-    return { code, desc, active, price, freight, carrier, priceUnit:p.priceUnit, freightUnit:p.freightUnit };
-  }).filter(p => p.active && !p.spacer);
+    results.push({ code, desc, active, price, freight, carrier, type:'packaged' });
+  });
+  return results;
 }
-
-// toggleCarrier removed — carrier now inline per product row
-
-// =====================================================================
-// Y/N
-// =====================================================================
-const ynValues = {};
 function setYN(id, val) {
   ynValues[id] = val;
   const item = document.getElementById('yn-'+id);
@@ -667,35 +765,65 @@ async function generatePDF(returnDoc=false) {
     doc.setTextColor(...GRAY);doc.setFontSize(8);doc.setFont('helvetica','italic');
     doc.text('No products selected',margin+3,y+5.5);y+=11;
   } else {
-    // Column widths
-    const c1=margin, c2=margin+76, c3=margin+76+50, c4=margin+76+50+47;
-    // Sub-header
-    doc.setFillColor(...BL);doc.rect(margin,y,cW,6,'F');
-    doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');
-    doc.text('PRODUCT',c1+1,y+4.5);doc.text('ACTIVE',c2,y+4.5,{align:'center'});
-    doc.text('PRICE',c3+24,y+4.5,{align:'center'});doc.text('FREIGHT',c4+18,y+4.5,{align:'center'});
-    y+=8;
-    d.pricing.forEach((p,i)=>{
-      const rowH=p.carrier?14:8;
-      chk(rowH+2);
-      doc.setFillColor(i%2===0?255:248,i%2===0?255:250,i%2===0?255:253);
-      doc.rect(margin,y,cW,rowH,'F');
-      doc.setTextColor(0,52,102);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
-      doc.text(p.code,c1+1,y+5);
-      doc.setTextColor(80,90,100);doc.setFontSize(6.5);doc.setFont('helvetica','normal');
-      doc.text(doc.splitTextToSize(p.desc,70)[0],c1+1,y+(rowH>8?9:5)+2.5);
-      doc.setTextColor(...NAVY);doc.setFontSize(8);doc.setFont('helvetica','bold');
-      doc.text('✓',c2,y+5,{align:'center'});
-      // Price
-      const priceStr = p.price ? `${p.price} ${p.priceUnit||''}` : '—';
-      doc.setTextColor(30,40,50);doc.setFontSize(8);doc.setFont('helvetica','normal');
-      doc.text(priceStr,c3+24,y+5,{align:'center'});
-      // Freight
-      const fStr = p.freight ? `${p.freight} ${p.freightUnit||''}` : (p.freightUnit?'—':'BioBlue');
-      doc.text(fStr,c4+18,y+5,{align:'center'});
-      if(p.carrier){doc.setFontSize(6.5);doc.setTextColor(...GRAY);doc.text(`Carrier: ${p.carrier}`,c2,y+10);}
-      y+=rowH+2;
-    });
+    // ── Bulk rows ──────────────────────────────────────────────
+    const bulkRows = d.pricing.filter(p=>p.type==='bulk');
+    if (bulkRows.length > 0) {
+      chk(12);
+      doc.setFillColor(...BL);doc.rect(margin,y,cW,6,'F');
+      doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');
+      doc.text('BULK ADBLUE®',margin+2,y+4.5);y+=8;
+      // Header row
+      const bCols = [margin+2, margin+60, margin+95, margin+125, margin+160];
+      doc.setFillColor(...NAVY);doc.rect(margin,y,cW,6,'F');
+      doc.setTextColor(255,255,255);doc.setFontSize(6.5);doc.setFont('helvetica','bold');
+      ['Product','Bulk CPL','Freight CPL','Delivered?','Delivered Price'].forEach((h,i)=>doc.text(h,bCols[i],y+4.5));
+      y+=8;
+      bulkRows.forEach((p,i)=>{
+        chk(8);
+        doc.setFillColor(i%2===0?255:248,i%2===0?255:250,i%2===0?255:253);
+        doc.rect(margin,y,cW,8,'F');
+        doc.setTextColor(0,52,102);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
+        doc.text(p.code,bCols[0],y+5.5);
+        doc.setTextColor(30,40,50);doc.setFontSize(8);doc.setFont('helvetica','normal');
+        doc.text(p.bulkCPL?p.bulkCPL+'¢':'—',bCols[1],y+5.5);
+        doc.text(p.freightCPL?p.freightCPL+'¢':'—',bCols[2],y+5.5);
+        doc.text(p.deliveredRequired?'Yes':'No',bCols[3],y+5.5);
+        if(p.deliveredRequired&&p.deliveredPrice){
+          doc.setTextColor(...GREEN);doc.setFont('helvetica','bold');
+          doc.text(p.deliveredPrice+'¢',bCols[4],y+5.5);
+        } else {doc.text('—',bCols[4],y+5.5);}
+        y+=10;
+      });
+      y+=4;
+    }
+    // ── Packaged rows ──────────────────────────────────────────
+    const packRows = d.pricing.filter(p=>p.type==='packaged');
+    if (packRows.length > 0) {
+      chk(12);
+      doc.setFillColor(...BL);doc.rect(margin,y,cW,6,'F');
+      doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');
+      doc.text('PACKAGED PRODUCTS',margin+2,y+4.5);y+=8;
+      const pCols = [margin+2, margin+76, margin+120];
+      doc.setFillColor(...NAVY);doc.rect(margin,y,cW,6,'F');
+      doc.setTextColor(255,255,255);doc.setFontSize(6.5);doc.setFont('helvetica','bold');
+      ['Product','Price ($/unit)','Freight ($/pallet)'].forEach((h,i)=>doc.text(h,pCols[i],y+4.5));
+      y+=8;
+      packRows.forEach((p,i)=>{
+        const rowH = p.carrier ? 14 : 8;
+        chk(rowH+2);
+        doc.setFillColor(i%2===0?255:248,i%2===0?255:250,i%2===0?255:253);
+        doc.rect(margin,y,cW,rowH,'F');
+        doc.setTextColor(0,52,102);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
+        doc.text(p.code,pCols[0],y+5.5);
+        doc.setTextColor(80,90,100);doc.setFontSize(6.5);doc.setFont('helvetica','normal');
+        if(p.desc) doc.text(doc.splitTextToSize(p.desc,60)[0],pCols[0],y+(rowH>8?10:5.5)+2);
+        doc.setTextColor(30,40,50);doc.setFontSize(8);
+        doc.text(p.price||'—',pCols[1],y+5.5);
+        doc.text(p.freight||'—',pCols[2],y+5.5);
+        if(p.carrier){doc.setFontSize(6.5);doc.setTextColor(...GRAY);doc.text(`Carrier: ${p.carrier}`,pCols[1],y+11);}
+        y+=rowH+2;
+      });
+    }
   }
 
   // S5 Notes
@@ -756,7 +884,10 @@ async function updateClientRecord(d, folderId) {
   const adminCol=headers.indexOf('Site Admin ✓');
   const notesCol=headers.indexOf('Notes Log');
 
-  const pricingSummary=d.pricing.map(p=>`${p.code}: ${p.price||'—'} ${p.priceUnit||''} | freight: ${p.freight||'—'} ${p.freightUnit||''}${p.carrier?' ('+p.carrier+')':''}`).join(' | ');
+  const pricingSummary = d.pricing.map(p => {
+    if (p.type==='bulk') return `BB-ADB-Bulk: ${p.bulkCPL||'—'}¢ + freight ${p.freightCPL||'—'}¢${p.deliveredRequired?' | Delivered: '+p.deliveredPrice+'¢':''}`;
+    return `${p.code}: ${p.price||'—'}/unit | freight ${p.freight||'—'}/pallet${p.carrier?' ('+p.carrier+')':''}`;
+  }).join(' | ');
   const noteEntry=`[Site Admin — ${new Date().toLocaleDateString('en-AU')}, ${d.completedBy}]\n${d.notes||'Site admin form completed.'}\nPricing: ${pricingSummary||'none recorded'}`;
 
   let rowIdx=-1;
@@ -857,6 +988,13 @@ function clearAll() {
   document.getElementById('poEmailField').style.display='none';
   for(const k in ynValues) delete ynValues[k];
   ['yn-distrib','yn-po'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.remove('yes','no');el.querySelectorAll('.yn-btn').forEach(b=>b.classList.remove('active-y','active-n'));}});
+  // Clear bulk
+  ['bulk_cpl','bulk_freight','bulk_delivered_price'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const bulkChk=document.getElementById('chk_bulk');if(bulkChk)bulkChk.checked=false;
+  const delChk=document.getElementById('bulk_delivered_chk');if(delChk)delChk.checked=false;
+  toggleDelivered(false);
+  const bulkRow=document.getElementById('row_bulk');if(bulkRow)bulkRow.style.background='';
+  // Clear packaged
   PRODUCTS.filter(p=>!p.spacer).forEach(p=>{
     const sc=p.code.replace(/-/g,'_');
     const chk=document.getElementById('chk_'+sc);if(chk)chk.checked=false;
