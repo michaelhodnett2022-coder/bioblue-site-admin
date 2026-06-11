@@ -404,6 +404,32 @@
 </div>
 <div class="toast" id="toast"></div>
 
+<!-- DELIVERED PRICE WARNING MODAL -->
+<div id="deliveredWarningModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:white;border-radius:14px;max-width:400px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.25);overflow:hidden;">
+    <div style="background:#d35400;padding:16px 20px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:22px;">⚠️</span>
+      <div style="font-size:14px;font-weight:700;color:white;">Delivered Pricing — Please Confirm</div>
+    </div>
+    <div style="padding:20px;">
+      <p style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:16px;">
+        <strong>Please Note:</strong> This client will see a single combined price on their invoice and the bulk/freight breakdown will not be visible.
+      </p>
+      <p style="font-size:13px;color:#374151;line-height:1.6;font-weight:600;">
+        Only tick yes if this client has specifically requested a combined delivered price — otherwise click Cancel.
+      </p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px 20px;">
+      <button onclick="cancelDelivered()" style="padding:12px;border-radius:8px;border:2px solid #c0392b;background:white;color:#c0392b;font-family:DM Sans,sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
+        ✕ Cancel
+      </button>
+      <button onclick="confirmDelivered()" style="padding:12px;border-radius:8px;border:none;background:#d35400;color:white;font-family:DM Sans,sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
+        ✓ Confirm
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
 // =====================================================================
 // CONFIG
@@ -474,19 +500,19 @@ function buildPricingTable() {
           </td>
           <td>
             <input type="text" class="price-input" id="bulk_cpl"
-              placeholder="e.g. 52 (¢/L)" style="width:100%;"
+              placeholder="e.g. 0.52" style="width:100%;"
               oninput="calcDelivered()">
           </td>
           <td>
             <input type="text" class="price-input" id="bulk_freight"
-              placeholder="e.g. 8 (¢/L)" style="width:100%;"
+              placeholder="e.g. 0.08" style="width:100%;"
               oninput="calcDelivered()">
           </td>
           <td style="text-align:center;vertical-align:middle;">
             <label style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;">
               <input type="checkbox" class="price-check" id="bulk_delivered_chk"
-                onchange="toggleDelivered(this.checked);calcDelivered()">
-              <span style="font-size:9px;color:var(--gray-mid);font-weight:600;text-align:center;line-height:1.2;">Delivered<br>$/L</span>
+                onchange="toggleDelivered(this.checked)">
+              <span style="font-size:9px;color:var(--gray-mid);font-weight:600;text-align:center;line-height:1.2;">Delivered<br>Price on<br>Invoice</span>
             </label>
           </td>
           <td>
@@ -534,30 +560,54 @@ function onBulkTick(checked) {
     document.getElementById('bulk_freight').value = '';
     document.getElementById('bulk_delivered_chk').checked = false;
     document.getElementById('bulk_delivered_price').value = '';
-    toggleDelivered(false);
+    applyDeliveredStyle(false);
   }
 }
 
 function toggleDelivered(show) {
+  if (show) {
+    // Show warning modal before activating
+    document.getElementById('deliveredWarningModal').style.display = 'flex';
+    return;
+  }
+  // Unticking — just clear immediately
+  applyDeliveredStyle(false);
+  calcDelivered();
+}
+
+function confirmDelivered() {
+  document.getElementById('deliveredWarningModal').style.display = 'none';
+  applyDeliveredStyle(true);
+  calcDelivered();
+}
+
+function cancelDelivered() {
+  document.getElementById('deliveredWarningModal').style.display = 'none';
+  // Untick the checkbox
+  const chk = document.getElementById('bulk_delivered_chk');
+  if (chk) chk.checked = false;
+  applyDeliveredStyle(false);
+  document.getElementById('bulk_delivered_price').value = '';
+}
+
+function applyDeliveredStyle(show) {
   const el = document.getElementById('bulk_delivered_price');
   if (el) {
-    el.style.background = show ? 'var(--green-light)' : '#f0f4f8';
-    el.style.color = show ? 'var(--green)' : 'var(--gray-mid)';
-    el.style.fontWeight = show ? '700' : '400';
-    el.style.borderColor = show ? 'var(--green)' : 'var(--gray-light)';
+    el.style.background   = show ? 'var(--green-light)' : '#f0f4f8';
+    el.style.color        = show ? 'var(--green)'       : 'var(--gray-mid)';
+    el.style.fontWeight   = show ? '700'                : '400';
+    el.style.borderColor  = show ? 'var(--green)'       : 'var(--gray-light)';
   }
 }
 
 function calcDelivered() {
   const chk = document.getElementById('bulk_delivered_chk')?.checked;
   if (!chk) { document.getElementById('bulk_delivered_price').value = ''; return; }
-  const bulk    = parseFloat(document.getElementById('bulk_cpl').value)    || 0;
-  const freight = parseFloat(document.getElementById('bulk_freight').value) || 0;
-  const totalCents = bulk + freight;
-  // Convert from ¢/L to $/L for display
-  const totalDollars = (totalCents / 100).toFixed(4);
+  const bulk    = parseFloat(document.getElementById('bulk_cpl').value)     || 0;
+  const freight = parseFloat(document.getElementById('bulk_freight').value)  || 0;
+  const total   = (bulk + freight).toFixed(2);
   const el = document.getElementById('bulk_delivered_price');
-  if (el) el.value = totalCents > 0 ? totalDollars : '';
+  if (el) el.value = (bulk + freight) > 0 ? total : '';
 }
 
 
@@ -634,6 +684,32 @@ function setYN(id, val) {
       });
     }
     if (id==='po') {
+      // PO question: Y=Red (more admin), N=Green (simpler)
+      if (item) {
+        if (val==='Y') {
+          item.style.background = 'var(--red-light)';
+          item.style.borderColor = '#f5c6c2';
+        } else {
+          item.style.background = 'var(--green-light)';
+          item.style.borderColor = '#6dba8a';
+        }
+        item.querySelectorAll('.yn-btn').forEach(b => {
+          const txt = b.textContent.trim();
+          b.style.background = '';
+          b.style.color = '';
+          b.style.borderColor = '';
+          if (txt==='Y' && val==='Y') {
+            b.style.background = '#c0392b';
+            b.style.color = 'white';
+            b.style.borderColor = '#c0392b';
+          }
+          if (txt==='N' && val==='N') {
+            b.style.background = '#00875a';
+            b.style.color = 'white';
+            b.style.borderColor = '#00875a';
+          }
+        });
+      }
       const pf = document.getElementById('poEmailField');
       if (pf) pf.style.display = val==='Y' ? 'block' : 'none';
     }
@@ -839,7 +915,7 @@ async function generatePDF(returnDoc=false) {
       const bCols = [margin+2, margin+60, margin+95, margin+125, margin+160];
       doc.setFillColor(...NAVY);doc.rect(margin,y,cW,6,'F');
       doc.setTextColor(255,255,255);doc.setFontSize(6.5);doc.setFont('helvetica','bold');
-      ['Product','Bulk CPL','Freight CPL','Delivered?','Delivered Price'].forEach((h,i)=>doc.text(h,bCols[i],y+4.5));
+      ['Product','Bulk CPL','Freight CPL','Delivered?','Delivered Price on Invoice'].forEach((h,i)=>doc.text(h,bCols[i],y+4.5));
       y+=8;
       bulkRows.forEach((p,i)=>{
         chk(8);
