@@ -14,7 +14,7 @@
   :root {
     --navy:#003466;--blue:#0055a5;--blue-bright:#0077cc;--blue-light:#e8f2fb;--blue-pale:#f4f9ff;
     --green:#00875a;--green-light:#e3f5ee;--red:#c0392b;--red-light:#fdecea;
-    --amber:#e67e22;--orange-light:#fef5e7;
+    --amber:#e67e22;--amber-dark:#d35400;--amber-mid:#f39c12;--orange-light:#fef5e7;
     --gray-dark:#2c3e50;--gray-mid:#6b7280;--gray-light:#e5e7eb;--gray-pale:#f9fafb;
     --shadow:0 2px 12px rgba(0,52,102,0.10);--shadow-lg:0 8px 32px rgba(0,52,102,0.15);
     --radius:12px;--radius-sm:8px;
@@ -251,13 +251,6 @@
         </div>
       </div>
 
-      <div class="yn-item" id="yn-distrib">
-        <div class="yn-question">Is this a distributor / reseller site? <span style="font-size:11px;color:var(--gray-mid);">(Select NO for internal usage)</span></div>
-        <div class="yn-controls">
-          <button class="yn-btn" onclick="setYN('distrib','Y')">Y</button>
-          <button class="yn-btn" onclick="setYN('distrib','N')">N</button>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -272,6 +265,14 @@
       <div class="section-toggle" id="toggle-s3">▼</div>
     </div>
     <div class="section-body" id="s3">
+
+      <div class="yn-item" id="yn-distrib">
+        <div class="yn-question">Is this a distributor / reseller site? <span style="font-size:11px;color:var(--gray-mid);">(Select NO for internal usage)</span></div>
+        <div class="yn-controls">
+          <button class="yn-btn" onclick="setYN('distrib','Y')">Y</button>
+          <button class="yn-btn" onclick="setYN('distrib','N')">N</button>
+        </div>
+      </div>
 
       <div class="field-row full" style="margin-bottom:16px;">
         <div class="field-group">
@@ -472,19 +473,19 @@ function buildPricingTable() {
           </td>
           <td>
             <input type="text" class="price-input" id="bulk_cpl"
-              placeholder="¢/L" style="width:100%;"
+              placeholder="e.g. 52 (¢/L)" style="width:100%;"
               oninput="calcDelivered()">
           </td>
           <td>
             <input type="text" class="price-input" id="bulk_freight"
-              placeholder="¢/L" style="width:100%;"
+              placeholder="e.g. 8 (¢/L)" style="width:100%;"
               oninput="calcDelivered()">
           </td>
           <td style="text-align:center;vertical-align:middle;">
             <label style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;">
               <input type="checkbox" class="price-check" id="bulk_delivered_chk"
                 onchange="toggleDelivered(this.checked);calcDelivered()">
-              <span style="font-size:9px;color:var(--gray-mid);font-weight:600;text-align:center;line-height:1.2;">Delivered<br>Price</span>
+              <span style="font-size:9px;color:var(--gray-mid);font-weight:600;text-align:center;line-height:1.2;">Delivered<br>$/L</span>
             </label>
           </td>
           <td>
@@ -549,10 +550,13 @@ function toggleDelivered(show) {
 function calcDelivered() {
   const chk = document.getElementById('bulk_delivered_chk')?.checked;
   if (!chk) { document.getElementById('bulk_delivered_price').value = ''; return; }
-  const bulk = parseFloat(document.getElementById('bulk_cpl').value) || 0;
+  const bulk    = parseFloat(document.getElementById('bulk_cpl').value)    || 0;
   const freight = parseFloat(document.getElementById('bulk_freight').value) || 0;
-  const total = (bulk + freight).toFixed(2);
-  document.getElementById('bulk_delivered_price').value = total > 0 ? total : '';
+  const totalCents = bulk + freight;
+  // Convert from ¢/L to $/L for display
+  const totalDollars = (totalCents / 100).toFixed(4);
+  const el = document.getElementById('bulk_delivered_price');
+  if (el) el.value = totalCents > 0 ? totalDollars : '';
 }
 
 
@@ -598,25 +602,44 @@ function getPricingData() {
   return results;
 }
 function setYN(id, val) {
-  ynValues[id] = val;
-  const item = document.getElementById('yn-'+id);
-  if (item) {
-    item.classList.remove('yes','no');
-    item.classList.add(val==='Y'?'yes':'no');
-    item.querySelectorAll('.yn-btn').forEach(b=>{
-      b.classList.remove('active-y','active-n');
-      if (b.textContent.trim()==='Y' && val==='Y') b.classList.add('active-y');
-      if (b.textContent.trim()==='N' && val==='N') b.classList.add('active-n');
-    });
+  try {
+    ynValues[id] = val;
+    const item = document.getElementById('yn-'+id);
+    if (item) {
+      // Direct style — does not depend on CSS variable resolution
+      if (val==='Y') {
+        item.style.background = 'var(--green-light)';
+        item.style.borderColor = '#6dba8a';
+      } else {
+        item.style.background = 'var(--red-light)';
+        item.style.borderColor = '#f5c6c2';
+      }
+      item.querySelectorAll('.yn-btn').forEach(b => {
+        const txt = b.textContent.trim();
+        b.classList.remove('active-y','active-n');
+        b.style.background = '';
+        b.style.color = '';
+        b.style.borderColor = '';
+        if (txt==='Y' && val==='Y') {
+          b.style.background = '#00875a';
+          b.style.color = 'white';
+          b.style.borderColor = '#00875a';
+        }
+        if (txt==='N' && val==='N') {
+          b.style.background = '#c0392b';
+          b.style.color = 'white';
+          b.style.borderColor = '#c0392b';
+        }
+      });
+    }
+    if (id==='po') {
+      const pf = document.getElementById('poEmailField');
+      if (pf) pf.style.display = val==='Y' ? 'block' : 'none';
+    }
+    updateProgress();
+  } catch(e) {
+    console.warn('setYN error:', e);
   }
-  if (id==='po') {
-    const pf = document.getElementById('poEmailField');
-    if (pf) pf.style.display = val==='Y' ? 'block' : 'none';
-  }
-  if (id==='distrib') {
-    // Visual feedback for distributor question
-  }
-  updateProgress();
 }
 
 // =====================================================================
