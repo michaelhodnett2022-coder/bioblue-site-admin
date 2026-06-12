@@ -1092,8 +1092,14 @@ async function uploadAndSend() {
     showToast('☁️ Connecting to Google...');
     await getDriveToken();
     const folderId=await getFolderId();
+    // Find client folder from record
+    const _clientId = new URLSearchParams(window.location.search).get('client');
+    const _folderName = d.customerName || d.siteName || 'Unknown Client';
+    showToast('📁 Finding client folder...');
+    const _clientFolderId = await getClientFolderFromRecord(folderId, _clientId, _folderName);
+
     const form=new FormData();
-    form.append('metadata',new Blob([JSON.stringify({name:baseName+'.pdf',parents:[folderId]})],{type:'application/json'}));
+    form.append('metadata',new Blob([JSON.stringify({name:baseName+'.pdf',parents:[_clientFolderId]})],{type:'application/json'}));
     form.append('file',pdfBlob,baseName+'.pdf');
     const up=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',{method:'POST',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
     const uploaded=await up.json();
@@ -1283,6 +1289,117 @@ function redirectToFieldTools(clientId) {
   const base = 'https://michaelhodnett2022-coder.github.io/bioblue-field-tools';
   const url  = clientId ? base + '?returning=' + clientId : base;
   setTimeout(() => { window.location.href = url; }, 2500);
+}
+
+// =====================================================================
+// GET OR CREATE CLIENT FOLDER IN DRIVE
+// =====================================================================
+async function getOrCreateClientFolder(parentFolderId, folderName) {
+  // Search for existing folder with this name
+  const searchRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name='${folderName.replace(/'/g,"\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`,
+    { headers: { Authorization: `Bearer ${gdriveToken}` } }
+  );
+  const searchData = await searchRes.json();
+  if (searchData.files && searchData.files.length > 0) {
+    return searchData.files[0].id;
+  }
+  // Create new folder
+  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${gdriveToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentFolderId] })
+  });
+  const created = await createRes.json();
+  return created.id;
+}
+
+async function getClientFolderFromRecord(parentFolderId, clientId, fallbackName) {
+  // Try to get folder ID from client records spreadsheet
+  try {
+    const sr = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='BioBlue_Client_Records.xlsx' and '${parentFolderId}' in parents and trashed=false&fields=files(id)`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    const sd = await sr.json();
+    if (!sd.files || !sd.files.length) throw new Error('Sheet not found');
+
+    const dl = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${sd.files[0].id}?alt=media`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    const ab  = await dl.arrayBuffer();
+    const wb  = XLSX.read(new Uint8Array(ab), { type: 'array' });
+    const ws  = wb.Sheets['Client Records'];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    const hdrs = rows[0] || [];
+
+    const idCol     = hdrs.indexOf('Client ID');
+    const folderCol = hdrs.indexOf('Drive Folder ID');
+
+    if (folderCol > -1 && clientId) {
+      const row = rows.slice(1).find(r => r[idCol] === clientId);
+      if (row && row[folderCol]) {
+        return row[folderCol]; // Return stored folder ID
+      }
+    }
+  } catch(e) {
+    console.warn('Could not read folder ID from sheet:', e.message);
+  }
+  // Fallback — get or create by name
+  if (fallbackName) {
+    return await getOrCreateClientFolder(parentFolderId, fallbackName);
+  }
+  return parentFolderId; // Last resort — upload to root
+}
+
+async function saveClientFolderIdToRecord(parentFolderId, clientId, folderId) {
+  try {
+    const sr = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='BioBlue_Client_Records.xlsx' and '${parentFolderId}' in parents and trashed=false&fields=files(id)`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    const sd = await sr.json();
+    if (!sd.files || !sd.files.length) return;
+
+    const fileId = sd.files[0].id;
+    const dl     = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
+    const ab     = await dl.arrayBuffer();
+    const wb     = XLSX.read(new Uint8Array(ab), { type: 'array' });
+    const ws     = wb.Sheets['Client Records'];
+    const rows   = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    const hdrs   = rows[0] || [];
+
+    // Add Drive Folder ID column if missing
+    let folderCol = hdrs.indexOf('Drive Folder ID');
+    if (folderCol === -1) {
+      hdrs.push('Drive Folder ID');
+      folderCol = hdrs.length - 1;
+      rows[0] = hdrs;
+    }
+
+    const idCol = hdrs.indexOf('Client ID');
+    const rowIdx = rows.findIndex((r, i) => i > 0 && r[idCol] === clientId);
+    if (rowIdx > -1) {
+      rows[rowIdx][folderCol] = folderId;
+    }
+
+    const notesCol = hdrs.indexOf('Notes Log');
+    const newWs    = XLSX.utils.aoa_to_sheet(rows);
+    newWs['!cols'] = hdrs.map((h, i) => ({ wch: i === notesCol ? 60 : i < 4 ? 20 : 16 }));
+    newWs['!freeze'] = { xSplit: 0, ySplit: 1 };
+    wb.Sheets['Client Records'] = newWs;
+
+    const out  = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify({})], { type: 'application/json' }));
+    form.append('file', blob, 'BioBlue_Client_Records.xlsx');
+    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`,
+      { method: 'PATCH', headers: { Authorization: `Bearer ${gdriveToken}` }, body: form });
+  } catch(e) {
+    console.warn('Could not save folder ID to sheet:', e.message);
+  }
 }
 </script>
 </body>
