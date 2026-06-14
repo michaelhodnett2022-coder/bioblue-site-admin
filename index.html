@@ -462,7 +462,6 @@ const PRODUCTS = [
   { code:'BB-ADB-10',   desc:'AdBlue® 10L container'        },
   { code:'BB-ADB-01',   desc:'AdBlue® 1L bottle'            },
   { code:'OTHER',       desc:'Other product / special pricing', other:true },
-  { code:'BB-ADB-Pack', desc:'Packaged freight (all pack products)', freightOnly:true, hasCarrier:true },
 ];
 
 function buildPricingTable() {
@@ -855,7 +854,7 @@ async function generatePDF(returnDoc=false) {
   const d=collectData();
   const margin=15,pageW=210,cW=pageW-margin*2;
   let y=margin;
-  const NAVY=[0,52,102],BLUE=[0,85,165],BL=[232,242,251],GREEN=[0,135,90],RED=[192,57,43],GRAY=[108,117,125],GL=[240,242,244],WHITE=[255,255,255];
+  const NAVY=[211,84,0],BLUE=[230,126,34],BL=[254,243,199],GREEN=[0,135,90],RED=[192,57,43],GRAY=[108,117,125],GL=[240,242,244],WHITE=[255,255,255];
 
   function chk(n=20){if(y+n>280){doc.addPage();y=margin;}}
   function secHdr(t){chk(14);doc.setFillColor(...NAVY);doc.roundedRect(margin,y,cW,9,1.5,1.5,'F');doc.setTextColor(255,255,255);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(t,margin+3,y+6);y+=12;}
