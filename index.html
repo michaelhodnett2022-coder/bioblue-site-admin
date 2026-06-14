@@ -1184,6 +1184,16 @@ async function loadClientFromURL() {
   // Get Drive token
   try {
     if (!gdriveToken) {
+      // Wait for Google Identity Services library to be ready (it loads async)
+      let _waited = 0;
+      while ((typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) && _waited < 5000) {
+        await new Promise(r => setTimeout(r, 100));
+        _waited += 100;
+      }
+      if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+        showPrefillRetry(clientId);
+        return;
+      }
       await new Promise((resolve, reject) => {
         const client = google.accounts.oauth2.initTokenClient({
           client_id: GDRIVE_CLIENT_ID,
@@ -1194,6 +1204,7 @@ async function loadClientFromURL() {
           },
           error_callback: e => reject(new Error(e.message || 'Sign-in failed'))
         });
+        // Interactive consent — needed because each form is a fresh page with no token
         client.requestAccessToken({ prompt: '' });
       });
     }
@@ -1267,7 +1278,8 @@ async function loadClientFromURL() {
     showToast('✅ Client details loaded — ' + (get('Billing Entity') || clientId));
 
   } catch(e) {
-    showToast('⚠️ Could not load client: ' + e.message);
+    showToast('⚠️ Could not load client — tap to retry');
+    showPrefillRetry(clientId);
   }
 }
 
@@ -1444,6 +1456,24 @@ async function getAdminSheetId(rootFolderId) {
     { method:'POST', headers:{ Authorization:`Bearer ${gdriveToken}` }, body:form });
   _adminSheetIdCache = (await up.json()).id;
   return _adminSheetIdCache;
+}
+
+// Pre-fill retry — shown if Drive token unavailable on form load
+function showPrefillRetry(clientId) {
+  const banner = document.getElementById('clientBanner');
+  if (!banner) return;
+  let btn = document.getElementById('prefillRetryBtn');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'prefillRetryBtn';
+    btn.textContent = '\u21bb Tap to load client details';
+    btn.style.cssText = 'margin-top:8px;padding:8px 14px;border:none;border-radius:8px;background:#1A9FD4;color:#fff;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;';
+    btn.onclick = () => { btn.textContent = '\u23f3 Loading...'; gdriveToken = null; loadClientFromURL(); };
+    banner.appendChild(btn);
+  } else {
+    btn.style.display = 'inline-block';
+    btn.textContent = '\u21bb Tap to load client details';
+  }
 }
 </script>
 </body>
