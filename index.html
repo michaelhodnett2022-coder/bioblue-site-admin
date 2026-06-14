@@ -1008,10 +1008,8 @@ async function getFolderId() {
 }
 
 async function updateClientRecord(d, folderId) {
-  const sr=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${CLIENT_RECORDS_NAME}' and '${folderId}' in parents and trashed=false&fields=files(id)`,{headers:{Authorization:`Bearer ${gdriveToken}`}});
-  const sd=await sr.json();
-  if(!sd.files||!sd.files.length){console.warn('Client Records sheet not found');return;}
-  const fileId=sd.files[0].id;
+  const fileId = await getAdminSheetId(folderId);
+  if(!fileId){console.warn('Could not get admin sheet');return;}
   const dl=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,{headers:{Authorization:`Bearer ${gdriveToken}`}});
   const ab=await dl.arrayBuffer();
   const wb=XLSX.read(new Uint8Array(ab),{type:'array'});
@@ -1211,15 +1209,11 @@ async function loadClientFromURL() {
     const fd  = await fr.json();
     if (!fd.files || !fd.files.length) return;
 
-    const sr = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='BioBlue_Client_Records.xlsx' and '${fd.files[0].id}' in parents and trashed=false&fields=files(id)`,
-      { headers: { Authorization: `Bearer ${gdriveToken}` } }
-    );
-    const sd = await sr.json();
-    if (!sd.files || !sd.files.length) return;
+    const _sheetId = await getAdminSheetId(fd.files[0].id);
+    if (!_sheetId) return;
 
     const dl  = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${sd.files[0].id}?alt=media`,
+      `https://www.googleapis.com/drive/v3/files/${_sheetId}?alt=media`,
       { headers: { Authorization: `Bearer ${gdriveToken}` } }
     );
     const ab   = await dl.arrayBuffer();
@@ -1316,15 +1310,11 @@ async function getOrCreateClientFolder(parentFolderId, folderName) {
 async function getClientFolderFromRecord(parentFolderId, clientId, fallbackName) {
   // Try to get folder ID from client records spreadsheet
   try {
-    const sr = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='BioBlue_Client_Records.xlsx' and '${parentFolderId}' in parents and trashed=false&fields=files(id)`,
-      { headers: { Authorization: `Bearer ${gdriveToken}` } }
-    );
-    const sd = await sr.json();
-    if (!sd.files || !sd.files.length) throw new Error('Sheet not found');
+    const _sheetId = await getAdminSheetId(parentFolderId);
+    if (!_sheetId) throw new Error('Sheet not found');
 
     const dl = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${sd.files[0].id}?alt=media`,
+      `https://www.googleapis.com/drive/v3/files/${_sheetId}?alt=media`,
       { headers: { Authorization: `Bearer ${gdriveToken}` } }
     );
     const ab  = await dl.arrayBuffer();
@@ -1354,14 +1344,8 @@ async function getClientFolderFromRecord(parentFolderId, clientId, fallbackName)
 
 async function saveClientFolderIdToRecord(parentFolderId, clientId, folderId) {
   try {
-    const sr = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='BioBlue_Client_Records.xlsx' and '${parentFolderId}' in parents and trashed=false&fields=files(id)`,
-      { headers: { Authorization: `Bearer ${gdriveToken}` } }
-    );
-    const sd = await sr.json();
-    if (!sd.files || !sd.files.length) return;
-
-    const fileId = sd.files[0].id;
+    const fileId = await getAdminSheetId(parentFolderId);
+    if (!fileId) return;
     const dl     = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
     const ab     = await dl.arrayBuffer();
     const wb     = XLSX.read(new Uint8Array(ab), { type: 'array' });
@@ -1399,6 +1383,70 @@ async function saveClientFolderIdToRecord(parentFolderId, clientId, folderId) {
   } catch(e) {
     console.warn('Could not save folder ID to sheet:', e.message);
   }
+}
+
+// =====================================================================
+// ADMIN SHEET — find or create AA_App_Admin folder + Client Records sheet
+// (app-owned under drive.file scope, avoids manual-upload visibility issue)
+// =====================================================================
+let _adminSheetIdCache = null;
+async function getAdminSheetId(rootFolderId) {
+  if (_adminSheetIdCache) return _adminSheetIdCache;
+
+  // 1. Find or create AA_App_Admin folder
+  let adminFolderId = null;
+  const afr = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name='AA_App_Admin' and '${rootFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,
+    { headers: { Authorization: `Bearer ${gdriveToken}` } }
+  );
+  const afd = await afr.json();
+  if (afd.files && afd.files.length) {
+    adminFolderId = afd.files[0].id;
+  } else {
+    const cr = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${gdriveToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'AA_App_Admin', mimeType: 'application/vnd.google-apps.folder', parents: [rootFolderId] })
+    });
+    adminFolderId = (await cr.json()).id;
+  }
+
+  // 2. Find the sheet inside AA_App_Admin
+  const sr = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name='BioBlue_Client_Records.xlsx' and '${adminFolderId}' in parents and trashed=false&fields=files(id)`,
+    { headers: { Authorization: `Bearer ${gdriveToken}` } }
+  );
+  const sd = await sr.json();
+  if (sd.files && sd.files.length) {
+    _adminSheetIdCache = sd.files[0].id;
+    return _adminSheetIdCache;
+  }
+
+  // 3. Not found — create a fresh workbook with correct columns
+  const headers = [
+    'Client ID','Billing Entity','Site Name','Street Address','Suburb','State','Postcode',
+    'Contact Name','Contact Title','Contact Mobile','Contact Email',
+    'Prospect \u2713','Quote Sent \u2713','Pkg Assessment \u2713','Site Admin \u2713',
+    'Site Audit \u2713','Customer \u2713','Drive Folder ID','Created Date','Created By','Notes Log'
+  ];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headers]);
+  ws['!cols'] = headers.map((h,i) => ({ wch: h==='Notes Log'?60 : i<4?22:14 }));
+  ws['!freeze'] = { xSplit:0, ySplit:1 };
+  XLSX.utils.book_append_sheet(wb, ws, 'Client Records');
+  // Notes Log tab
+  const nws = XLSX.utils.aoa_to_sheet([['Client ID','Billing Entity','Site Name','Timestamp','Form','BDM','Notes']]);
+  XLSX.utils.book_append_sheet(wb, nws, 'Notes Log');
+
+  const out  = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+  const blob = new Blob([out], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify({ name:'BioBlue_Client_Records.xlsx', parents:[adminFolderId] })], { type:'application/json' }));
+  form.append('file', blob, 'BioBlue_Client_Records.xlsx');
+  const up = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+    { method:'POST', headers:{ Authorization:`Bearer ${gdriveToken}` }, body:form });
+  _adminSheetIdCache = (await up.json()).id;
+  return _adminSheetIdCache;
 }
 </script>
 </body>
