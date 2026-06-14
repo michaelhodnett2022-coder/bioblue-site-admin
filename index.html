@@ -181,7 +181,7 @@
       <div class="field-row">
         <div class="field-group">
           <label class="field-label required">Customer / Billing Entity</label>
-          <input type="text" id="customerName" placeholder="e.g. Acme Haulage Pty Ltd" oninput="updateProgress()">
+          <input type="text" id="customerName" placeholder="" oninput="updateProgress()">
         </div>
         <div class="field-group">
           <label class="field-label required">Date</label>
@@ -191,11 +191,8 @@
       <div class="field-row">
         <div class="field-group">
           <label class="field-label required">Site Name</label>
-          <input type="text" id="siteName" placeholder="e.g. Acme Welshpool Depot" oninput="updateProgress()">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Site Number</label>
-          <input type="text" id="siteNumber" placeholder="e.g. BB-0001">
+          <input type="text" id="siteName" placeholder="" oninput="updateProgress()">
+          <input type="hidden" id="siteNumber">
         </div>
       </div>
       <div class="field-group" style="margin-bottom:12px;">
@@ -212,7 +209,7 @@
       <div class="field-row three">
         <div class="field-group">
           <label class="field-label">Suburb</label>
-          <input type="text" id="suburb" placeholder="e.g. Welshpool">
+          <input type="text" id="suburb" placeholder="">
         </div>
         <div class="field-group">
           <label class="field-label">State</label>
@@ -293,7 +290,7 @@
           <div class="inline-arrow">↳</div>
           <div class="inline-content">
             <label class="field-label">If Yes — PO delivery email address</label>
-            <input type="email" id="poEmail" placeholder="e.g. purchasing@company.com">
+            <input type="email" id="poEmail" placeholder="">
           </div>
         </div>
       </div>
@@ -301,7 +298,7 @@
       <div class="field-row full" style="margin-top:8px;">
         <div class="field-group">
           <label class="field-label">Site POD Email <span style="font-size:10px;font-weight:400;color:var(--gray-mid);">(for TrackPOD proof of delivery)</span></label>
-          <input type="email" id="podEmail" placeholder="e.g. depot@company.com">
+          <input type="email" id="podEmail" placeholder="">
         </div>
       </div>
 
