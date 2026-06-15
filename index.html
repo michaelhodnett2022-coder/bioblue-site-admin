@@ -1146,7 +1146,6 @@ function clearAll() {
     const row=document.getElementById('row_'+sc);if(row)row.style.background='';
   });
   buildPricingTable();
-  loadClientFromURL();
   updateProgress();
 }
 function toggleSection(id){const b=document.getElementById(id),t=document.getElementById('toggle-'+id);if(!b)return;const c=b.classList.toggle('collapsed');if(t)t.textContent=c?'▶':'▼';}
@@ -1159,6 +1158,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('formDate').value=new Date().toISOString().split('T')[0];
   document.getElementById('completedBy').value='Michael Hodnett';
   autoFill('Michael Hodnett');
+  loadClientFromURL();
   updateProgress();
 });
 
@@ -1178,7 +1178,7 @@ async function loadClientFromURL() {
 
   if (banner) {
     banner.style.display = 'flex';
-    document.getElementById('bannerClientId').textContent = clientId;
+    document.getElementById('bannerClientId').textContent = '';  // BB-XXXX kept internal, not displayed
   }
 
   // Get Drive token
