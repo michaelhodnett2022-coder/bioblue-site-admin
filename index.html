@@ -1178,7 +1178,7 @@ async function loadClientFromURL() {
 
   if (banner) {
     banner.style.display = 'flex';
-    document.getElementById('bannerClientId').textContent = '';  // BB-XXXX kept internal, not displayed
+    document.getElementById('bannerClientId').textContent = 'Ref: ' + clientId;  // discreet reference
   }
 
   // Get Drive token
