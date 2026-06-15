@@ -144,7 +144,7 @@
     <div style="font-size:20px;">🏢</div>
     <div style="flex:1;">
       <div style="font-size:11px;font-weight:700;color:#e67e22;text-transform:uppercase;letter-spacing:0.5px;">Active Client</div>
-      <div style="font-size:14px;font-weight:700;color:#1f2937;" id="bannerClientName">Loading...</div>
+      <div style="font-size:14px;font-weight:700;color:#1f2937;" id="bannerClientName">Active Client Ready to Load</div>
       <div style="font-size:11px;color:#6b7280;" id="bannerClientId"></div>
     </div>
     <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#e67e22;text-decoration:none;
@@ -1179,6 +1179,13 @@ async function loadClientFromURL() {
   if (banner) {
     banner.style.display = 'flex';
     document.getElementById('bannerClientId').textContent = 'Ref: ' + clientId;  // discreet reference
+    // Show client name immediately from session (set by Field Tools) so the
+    // banner reads the name, not "Ready to Load", even before the Drive fetch.
+    try {
+      const _sessName = sessionStorage.getItem('bb_selected_client_name');
+      const _nm = document.getElementById('bannerClientName');
+      if (_nm && _sessName) _nm.textContent = _sessName;
+    } catch(e) {}
   }
 
   // Get Drive token
@@ -1462,6 +1469,8 @@ async function getAdminSheetId(rootFolderId) {
 function showPrefillRetry(clientId) {
   const banner = document.getElementById('clientBanner');
   if (!banner) return;
+  const _nm = document.getElementById('bannerClientName');
+  if (_nm) _nm.textContent = 'Active Client Ready to Load';
   let btn = document.getElementById('prefillRetryBtn');
   if (!btn) {
     btn = document.createElement('button');
