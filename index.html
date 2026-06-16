@@ -1176,22 +1176,31 @@ async function loadClientFromURL() {
     return;
   }
 
+  // Show the banner immediately with the client name from session (no token needed).
   if (banner) {
     banner.style.display = 'flex';
-    document.getElementById('bannerClientId').textContent = 'Ref: ' + clientId;  // discreet reference
-    // Show client name immediately from session (set by Field Tools) so the
-    // banner reads the name, not "Ready to Load", even before the Drive fetch.
+    document.getElementById('bannerClientId').textContent = 'Ref: ' + clientId;
     try {
       const _sessName = sessionStorage.getItem('bb_selected_client_name');
       const _nm = document.getElementById('bannerClientName');
-      if (_nm && _sessName) _nm.textContent = _sessName;
+      if (_nm) _nm.textContent = _sessName || 'Active Client Ready to Load';
     } catch(e) {}
   }
 
-  // Get Drive token
+  // If we already hold a token (rare on a fresh page), fetch straight away.
+  // Otherwise show the "Tap to load" button so the token popup fires from a
+  // real user gesture (browsers block popups opened without a click).
+  if (gdriveToken) {
+    fetchClientDetails(clientId);
+  } else {
+    showPrefillRetry(clientId);
+  }
+}
+
+async function fetchClientDetails(clientId) {
   try {
+    // Acquire token if needed — this runs from a user tap, so the popup is allowed
     if (!gdriveToken) {
-      // Wait for Google Identity Services library to be ready (it loads async)
       let _waited = 0;
       while ((typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) && _waited < 5000) {
         await new Promise(r => setTimeout(r, 100));
@@ -1211,12 +1220,10 @@ async function loadClientFromURL() {
           },
           error_callback: e => reject(new Error(e.message || 'Sign-in failed'))
         });
-        // Interactive consent — needed because each form is a fresh page with no token
         client.requestAccessToken({ prompt: '' });
       });
     }
 
-    // Find folder + sheet
     const fr = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=name='BioBlue Audits' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,
       { headers: { Authorization: `Bearer ${gdriveToken}` } }
@@ -1237,15 +1244,12 @@ async function loadClientFromURL() {
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
     const hdrs = rows[0] || [];
 
-    // Find matching row
     const idCol = hdrs.indexOf('Client ID');
     const row   = rows.slice(1).find(r => r[idCol] === clientId);
     if (!row) { showToast('⚠️ Client ' + clientId + ' not found in records'); return; }
 
-    // Map fields
     const get = col => { const i = hdrs.indexOf(col); return (i > -1 && row[i]) ? row[i].toString() : ''; };
 
-    // Fill common Section 1 fields — each form uses the same IDs
     const fields = {
       customerName:  get('Billing Entity'),
       companyName:   get('Billing Entity'),
@@ -1268,7 +1272,6 @@ async function loadClientFromURL() {
       if (el && val) el.value = val;
     });
 
-    // State dropdown
     const stateVal = get('State');
     const stateEl  = document.getElementById('state');
     if (stateEl && stateVal) {
@@ -1277,11 +1280,14 @@ async function loadClientFromURL() {
       }
     }
 
-    // Update banner with client name
     const nameEl = document.getElementById('bannerClientName');
     if (nameEl) nameEl.textContent = get('Billing Entity') || clientId;
 
-    updateProgress();
+    // Hide the retry button once loaded
+    const rb = document.getElementById('prefillRetryBtn');
+    if (rb) rb.style.display = 'none';
+
+    if (typeof updateProgress === 'function') updateProgress();
     showToast('✅ Client details loaded — ' + (get('Billing Entity') || clientId));
 
   } catch(e) {
@@ -1477,7 +1483,7 @@ function showPrefillRetry(clientId) {
     btn.id = 'prefillRetryBtn';
     btn.textContent = '\u21bb Tap to load client details';
     btn.style.cssText = 'margin-top:8px;padding:8px 14px;border:none;border-radius:8px;background:#1A9FD4;color:#fff;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;';
-    btn.onclick = () => { btn.textContent = '\u23f3 Loading...'; gdriveToken = null; loadClientFromURL(); };
+    btn.onclick = () => { btn.textContent = '\u23f3 Loading...'; fetchClientDetails(clientId); };
     banner.appendChild(btn);
   } else {
     btn.style.display = 'inline-block';
