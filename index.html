@@ -83,8 +83,14 @@
   .pricing-table tr:hover td { background:var(--blue-pale); }
   .pricing-table td:last-child { text-align:center; }
   .price-check { width:18px;height:18px;accent-color:var(--blue);cursor:pointer; }
-  .price-input { width:90px;padding:6px 8px;border:1.5px solid var(--gray-light);border-radius:6px;font-size:13px;font-family:'DM Mono',monospace;font-weight:500;color:var(--navy);text-align:right;background:var(--gray-pale); }
+  .price-input { width:100%;max-width:90px;padding:8px 6px;border:1.5px solid var(--gray-light);border-radius:6px;font-size:14px;font-family:'DM Mono',monospace;font-weight:500;color:var(--navy);text-align:right;background:var(--gray-pale);min-height:38px; }
   .price-input:focus { outline:none;border-color:var(--blue-bright);background:white; }
+  @media(max-width:520px) {
+    .price-input { font-size:16px;padding:10px 6px;min-height:44px; }
+    .pricing-table { font-size:12px; }
+    .pricing-table th { padding:8px 6px;font-size:11px; }
+    .pricing-table td { padding:6px 4px; }
+  }
   .price-code { font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--navy);background:var(--blue-light);padding:3px 8px;border-radius:4px;display:inline-block; }
   .price-desc { font-size:12px;color:var(--gray-mid);margin-top:2px; }
   .freight-section { margin-top:16px;padding:14px;background:var(--blue-pale);border:1.5px solid var(--blue-light);border-radius:var(--radius-sm); }
@@ -319,7 +325,9 @@
 
       <p style="font-size:12px;color:var(--gray-mid);margin-bottom:12px;">Tick all product codes that apply to this site and enter the agreed CPL rate for each.</p>
 
-      <div id="bulkTableWrap"></div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <div id="bulkTableWrap"></div>
+      </div>
 
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
         <div style="flex:1;height:2px;background:var(--blue-light);"></div>
@@ -327,23 +335,25 @@
         <div style="flex:1;height:2px;background:var(--blue-light);"></div>
       </div>
 
-      <table class="pricing-table" style="table-layout:fixed;width:100%;">
-        <colgroup>
-          <col style="width:44%;">
-          <col style="width:10%;">
-          <col style="width:23%;">
-          <col style="width:23%;">
-        </colgroup>
-        <thead>
-          <tr>
-            <th>Product Code</th>
-            <th style="text-align:center;">Active</th>
-            <th style="text-align:center;">Price ($/unit)</th>
-            <th style="text-align:center;">Freight ($/pallet)</th>
-          </tr>
-        </thead>
-        <tbody id="pricingRows"></tbody>
-      </table>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <table class="pricing-table" style="table-layout:fixed;width:100%;min-width:400px;">
+          <colgroup>
+            <col style="width:44%;">
+            <col style="width:10%;">
+            <col style="width:23%;">
+            <col style="width:23%;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Product Code</th>
+              <th style="text-align:center;">Active</th>
+              <th style="text-align:center;">Price ($/unit)</th>
+              <th style="text-align:center;">Freight ($/pallet)</th>
+            </tr>
+          </thead>
+          <tbody id="pricingRows"></tbody>
+        </table>
+      </div>
 
     </div>
   </div>
@@ -465,7 +475,7 @@ function buildPricingTable() {
   // ── BULK TABLE ──────────────────────────────────────────────────
   const bulkContainer = document.getElementById('bulkTableWrap');
   bulkContainer.innerHTML = `
-    <table class="pricing-table" style="table-layout:fixed;width:100%;margin-bottom:16px;">
+    <table class="pricing-table" style="table-layout:fixed;width:100%;min-width:500px;margin-bottom:16px;">
       <colgroup>
         <col style="width:30%;">
         <col style="width:10%;">
