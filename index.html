@@ -18,6 +18,11 @@
     --gray-dark:#2c3e50;--gray-mid:#6b7280;--gray-light:#e5e7eb;--gray-pale:#f9fafb;
     --shadow:0 2px 12px rgba(0,52,102,0.10);--shadow-lg:0 8px 32px rgba(0,52,102,0.15);
     --radius:12px;--radius-sm:8px;
+  .contact-card{border:1.5px solid var(--gray-light);border-radius:10px;overflow:hidden;margin-bottom:12px;}
+  .contact-card-hdr{background:var(--orange-light);border-bottom:1.5px solid #f6c88a;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+  .contact-card-hdr span{font-size:11px;font-weight:700;color:var(--amber-dark);text-transform:uppercase;letter-spacing:0.5px;}
+  .contact-card-hdr .req-badge{font-size:10px;font-weight:700;background:var(--amber-dark);color:white;border-radius:20px;padding:2px 8px;}
+  .contact-card-body{padding:14px 14px 4px;}
   }
   * { box-sizing:border-box;margin:0;padding:0; }
   body { font-family:'DM Sans',sans-serif;background:#f0f4f8;color:var(--gray-dark);min-height:100vh;font-size:15px;-webkit-font-smoothing:antialiased; }
@@ -143,6 +148,9 @@
 </div>
 
 <div class="main-content">
+<input type="hidden" id="_siteLocationName">
+<input type="hidden" id="_descriptor">
+<input type="hidden" id="_generatedSiteName">
   <!-- CLIENT BANNER -->
   <div id="clientBanner" style="display:none;align-items:center;gap:12px;
       background:#fef5e7;border:1.5px solid #e67e22;
@@ -237,20 +245,70 @@
   <!-- SECTION 2: KEY CONTACTS -->
   <div class="section-card">
     <div class="section-header" onclick="toggleSection('s2')">
-      <div class="section-header-icon">👤</div>
+      <div class="section-header-icon">👥</div>
       <div class="section-header-text">
-        <h2>2. Key Contacts & Site Type</h2>
-        <p>Decision maker and site classification</p>
+        <h2>2. Contacts</h2>
+        <p>Business / site contact and admin / invoicing — both required</p>
       </div>
       <div class="section-toggle" id="toggle-s2">▼</div>
     </div>
     <div class="section-body" id="s2">
-      <div class="field-group" style="margin-bottom:12px;">
-        <label class="field-label">Key Decision Maker <span style="font-size:10px;font-weight:400;color:var(--gray-mid);">(if different to main billing contact)</span></label>
-        <input type="text" id="decisionMaker" placeholder="Full name" style="margin-bottom:6px;">
-        <div class="field-row" style="margin-bottom:0;">
-          <input type="tel" id="decisionMakerPhone" placeholder="Mobile" style="margin-bottom:0;">
-          <input type="email" id="decisionMakerEmail" placeholder="Email" style="margin-bottom:0;">
+
+      <div class="contact-card">
+        <div class="contact-card-hdr">
+          <span>Business / Site Contact</span>
+          <span class="req-badge">Required</span>
+        </div>
+        <div class="contact-card-body">
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label required">Full Name</label>
+              <input type="text" id="bizContactName" placeholder="Full name" oninput="updateProgress()">
+            </div>
+            <div class="field-group">
+              <label class="field-label required">Title / Role</label>
+              <input type="text" id="bizContactRole" placeholder="e.g. Site Manager" oninput="updateProgress()">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label required">Email</label>
+              <input type="email" id="bizContactEmail" placeholder="name@company.com.au" oninput="updateProgress()">
+            </div>
+            <div class="field-group">
+              <label class="field-label required">Phone</label>
+              <input type="tel" id="bizContactPhone" placeholder="04XX XXX XXX" oninput="updateProgress()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="contact-card-hdr">
+          <span>Admin / Invoicing Contact</span>
+          <span class="req-badge">Required</span>
+        </div>
+        <div class="contact-card-body">
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label required">Full Name</label>
+              <input type="text" id="adminContactName" placeholder="Full name" oninput="updateProgress()">
+            </div>
+            <div class="field-group">
+              <label class="field-label required">Title / Role</label>
+              <input type="text" id="adminContactRole" placeholder="e.g. Accounts Payable" oninput="updateProgress()">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label required">Email</label>
+              <input type="email" id="adminContactEmail" placeholder="accounts@company.com.au" oninput="updateProgress()">
+            </div>
+            <div class="field-group">
+              <label class="field-label required">Phone</label>
+              <input type="tel" id="adminContactPhone" placeholder="04XX XXX XXX" oninput="updateProgress()">
+            </div>
+          </div>
         </div>
       </div>
 
@@ -303,8 +361,8 @@
 
       <div class="field-row full" style="margin-top:8px;">
         <div class="field-group">
-          <label class="field-label">Site POD Email <span style="font-size:10px;font-weight:400;color:var(--gray-mid);">(for TrackPOD proof of delivery)</span></label>
-          <input type="email" id="podEmail" placeholder="">
+          <label class="field-label">Proof of Delivery (POD) email</label>
+          <input type="email" id="podEmail" placeholder="e.g. pod@company.com.au">
         </div>
       </div>
 
@@ -808,7 +866,9 @@ function autoFill(name) {
 // PROGRESS
 // =====================================================================
 function updateProgress() {
-  const req=['customerName','formDate','siteName','siteAddress','completedBy'];
+  const req=['customerName','formDate','siteName','siteAddress','completedBy',
+             'bizContactName','bizContactRole','bizContactEmail','bizContactPhone',
+             'adminContactName','adminContactRole','adminContactEmail','adminContactPhone'];
   const filled=req.filter(id=>document.getElementById(id)?.value?.trim()).length;
   const ynDone=Object.keys(ynValues).length;
   const pricingDone=getPricingData().length > 0 ? 1 : 0;
@@ -826,26 +886,35 @@ function collectData() {
   const g=id=>document.getElementById(id)?.value||'';
   const pricing = getPricingData();
   return {
-    customerName:  g('customerName'),
-    formDate:      g('formDate'),
-    siteName:      g('siteName'),
+    customerName:      g('customerName'),
+    billingEntity:     g('customerName'),
+    formDate:          g('formDate'),
+    siteName:          g('siteName'),
+    generatedSiteName: g('_generatedSiteName')||g('siteName'),
+    _siteLocationName: g('_siteLocationName'),
+    _descriptor:       g('_descriptor'),
     siteNumber:    g('siteNumber'),
     siteAddress:   g('siteAddress'),
     suburb:        g('suburb'),
     state:         g('state'),
     postcode:      g('postcode'),
-    decisionMaker: g('decisionMaker'),
-    decisionMakerPhone: g('decisionMakerPhone'),
-    decisionMakerEmail: g('decisionMakerEmail'),
+    bizContactName:    g('bizContactName'),
+    bizContactRole:    g('bizContactRole'),
+    bizContactEmail:   g('bizContactEmail'),
+    bizContactPhone:   g('bizContactPhone'),
+    adminContactName:  g('adminContactName'),
+    adminContactRole:  g('adminContactRole'),
+    adminContactEmail: g('adminContactEmail'),
+    adminContactPhone: g('adminContactPhone'),
     isDistributor: ynValues['distrib']||'',
     invoiceEmails: g('invoiceEmails'),
     poRequired:    ynValues['po']||'',
     poEmail:       g('poEmail'),
     podEmail:      g('podEmail'),
     pricing,
-    // freight now captured inline per product row in pricing[]
     notes:         g('notes'),
     completedBy:   g('completedBy'),
+    bdmName:       g('completedBy'),
     bdmEmail:      g('bdmEmail'),
     formType:      'Site Administration Form',
     _savedAt:      new Date().toISOString(),
@@ -855,50 +924,91 @@ function collectData() {
 // =====================================================================
 // PDF GENERATION
 // =====================================================================
+// =====================================================================
+// STANDARD PDF HEADER (softened amber ~35%)
+// =====================================================================
+function drawStdHeader(doc,d,formLabel,MC,ML){
+  const margin=15,pW=210,cW=pW-margin*2;
+  const NAVY=[0,52,102],BLUE=[0,85,165],GRAY=[108,117,125],BLK=[30,40,50];
+  doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...NAVY);
+  doc.text('Bio',margin,9);const bW=doc.getTextWidth('Bio');
+  doc.setTextColor(...BLUE);doc.text('Blue',margin+bW,9);
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GRAY);
+  doc.text('  \u00b7  '+formLabel,margin+bW+doc.getTextWidth('Blue'),9);
+  const dv=d.formDate||d.prospectDate||d.auditDate||d.assessDate||'';
+  if(dv){let ds=dv;try{ds=new Date(dv+'T12:00:00').toLocaleDateString('en-AU');}catch(e){}doc.text(ds,pW-margin,9,{align:'right'});}
+  doc.setDrawColor(...BLUE);doc.setLineWidth(0.4);doc.line(margin,11.5,pW-margin,11.5);
+  doc.setFillColor(...MC);doc.rect(margin,13,cW,14,'F');
+  doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(255,255,255);
+  doc.text(formLabel.toUpperCase(),margin+3,17.5);
+  const sn=(d.generatedSiteName||d.siteName||d.customerName||'').toUpperCase();
+  doc.setFont('helvetica','bold');doc.setFontSize(11);
+  doc.text(doc.splitTextToSize(sn,cW-8)[0],margin+3,24);
+  const by=28.5;doc.setFillColor(...ML);doc.rect(margin,by,cW,37,'F');
+  const bm=margin+3,hw=(cW-8)/2;
+  const lbl=(t,x,y)=>{doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(...MC);doc.text(t,x,y);};
+  const val=(t,x,y)=>{doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...BLK);doc.text((t||'\u2014').toString().substring(0,42),x,y);};
+  const divL=(y)=>{doc.setDrawColor(200,210,220);doc.setLineWidth(0.2);doc.line(margin+2,y,pW-margin-2,y);};
+  lbl('BILLING ENTITY',bm,by+3);val(d.billingEntity||d.customerName,bm,by+7);
+  lbl('DESCRIPTOR',bm+hw+4,by+3);val(d._descriptor,bm+hw+4,by+7);
+  divL(by+9.5);
+  lbl('SITE LOCATION / END USER',bm,by+12.5);val(d._siteLocationName,bm,by+16.5);
+  lbl('BDM',bm+hw+4,by+12.5);val(d.bdmName||d.completedBy,bm+hw+4,by+16.5);
+  divL(by+19);lbl('ADDRESS',bm,by+22);
+  const addr=[d.siteAddress,d.suburb,d.state,d.postcode].filter(Boolean).join(', ');
+  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...BLK);
+  doc.text((addr||'\u2014').substring(0,65),bm,by+26);
+  divL(by+28.5);lbl('BUSINESS CONTACT',bm,by+31.5);
+  const bizN=d.bizContactName||d.contactName||'\u2014';
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...BLK);
+  doc.text(bizN.substring(0,28),bm,by+35.5);
+  const bizP=d.bizContactPhone||d.contactMobile||'';
+  const bizE=d.bizContactEmail||d.contactEmail||'';
+  doc.setFont('helvetica','normal');doc.setFontSize(7);
+  if(bizP){doc.setTextColor(...GRAY);doc.text(bizP,bm+48,by+35.5);}
+  if(bizE){doc.setTextColor(...BLUE);doc.text(bizE.substring(0,32),bm+74,by+35.5);}
+  return by+37+4;
+}
+
 async function generatePDF(returnDoc=false) {
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   const d=collectData();
   const margin=15,pageW=210,cW=pageW-margin*2;
   let y=margin;
-  const NAVY=[211,84,0],BLUE=[230,126,34],BL=[254,243,199],GREEN=[0,135,90],RED=[192,57,43],GRAY=[108,117,125],GL=[240,242,244],WHITE=[255,255,255];
+  const AMBER=[226,144,89],AMBER_L=[254,243,199],GREEN=[0,135,90],RED=[192,57,43],GRAY=[108,117,125],GL=[240,242,244];
 
   function chk(n=20){if(y+n>280){doc.addPage();y=margin;}}
-  function secHdr(t){chk(14);doc.setFillColor(...NAVY);doc.roundedRect(margin,y,cW,9,1.5,1.5,'F');doc.setTextColor(255,255,255);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(t,margin+3,y+6);y+=12;}
-  function fRow(l,v){chk(8);doc.setTextColor(...GRAY);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(l,margin,y);doc.setTextColor(30,40,50);doc.setFontSize(9);const lines=doc.splitTextToSize(v||'—',cW-2);doc.text(lines,margin,y+4);y+=4+lines.length*4+3;}
-  function twoRow(l1,v1,l2,v2){chk(12);const hw=cW/2-2;doc.setTextColor(...GRAY);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(l1,margin,y);doc.text(l2,margin+cW/2+2,y);y+=4;doc.setTextColor(30,40,50);doc.setFontSize(9);const a=doc.splitTextToSize(v1||'—',hw),b=doc.splitTextToSize(v2||'—',hw);doc.text(a,margin,y);doc.text(b,margin+cW/2+2,y);y+=Math.max(a.length,b.length)*4+4;}
+  function secHdr(t){chk(14);doc.setFillColor(...AMBER);doc.roundedRect(margin,y,cW,9,1.5,1.5,'F');doc.setTextColor(255,255,255);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(t,margin+3,y+6);y+=12;}
+  function fRow(l,v){chk(8);doc.setTextColor(...GRAY);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(l,margin,y);doc.setTextColor(30,40,50);doc.setFontSize(9);const lines=doc.splitTextToSize(v||'\u2014',cW-2);doc.text(lines,margin,y+4);y+=4+lines.length*4+3;}
+  function twoRow(l1,v1,l2,v2){chk(12);const hw=cW/2-2;doc.setTextColor(...GRAY);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(l1,margin,y);doc.text(l2,margin+cW/2+2,y);y+=4;doc.setTextColor(30,40,50);doc.setFontSize(9);const a=doc.splitTextToSize(v1||'\u2014',hw),b=doc.splitTextToSize(v2||'\u2014',hw);doc.text(a,margin,y);doc.text(b,margin+cW/2+2,y);y+=Math.max(a.length,b.length)*4+4;}
 
-  // Header
-  doc.setFillColor(...NAVY);doc.rect(0,0,210,32,'F');
-  doc.setFillColor(...BLUE);doc.rect(0,28,210,4,'F');
-  doc.setTextColor(255,255,255);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text('BIOBLUE',margin,10);
-  doc.setFontSize(15);doc.setFont('helvetica','bold');doc.text('Site Administration Form',margin,18);
-  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('Client Setup \u00b7 Pricing \u00b7 Invoicing',margin,24);
-  doc.text(d.formDate?`Date: ${d.formDate}`:'',pageW-margin,18,{align:'right'});
-  doc.text(d.customerName||'',pageW-margin,24,{align:'right'});
-  y=40;
+  y = drawStdHeader(doc, d, 'Site Administration Form', [226,144,89], [254,243,199]);
 
   // S1 Client Details
+  secHdr('1. CLIENT DETAILS');
   twoRow('Customer / Billing Entity',d.customerName,'Date',d.formDate);
   twoRow('Site Name',d.siteName,'Site Number',d.siteNumber);
   fRow('Site Address',[d.siteAddress,d.suburb,d.state,d.postcode].filter(Boolean).join(', '));
 
   // S2 Contacts
-  secHdr('2. KEY CONTACTS & SITE TYPE');
-  twoRow('Key Decision Maker',d.decisionMaker||'—','Distributor / Reseller Site',d.isDistributor==='Y'?'Yes':d.isDistributor==='N'?'No':'—');
-  if(d.decisionMakerPhone||d.decisionMakerEmail) twoRow('DM Phone',d.decisionMakerPhone||'—','DM Email',d.decisionMakerEmail||'—');
+  secHdr('2. CONTACTS');
+  twoRow('Business / Site Contact',d.bizContactName||'\u2014','Title / Role',d.bizContactRole||'\u2014');
+  if(d.bizContactPhone||d.bizContactEmail) twoRow('Phone',d.bizContactPhone||'\u2014','Email',d.bizContactEmail||'\u2014');
+  twoRow('Admin / Invoicing Contact',d.adminContactName||'\u2014','Title / Role',d.adminContactRole||'\u2014');
+  if(d.adminContactPhone||d.adminContactEmail) twoRow('Phone',d.adminContactPhone||'\u2014','Email',d.adminContactEmail||'\u2014');
 
   // S3 Invoicing
   secHdr('3. INVOICING & PURCHASE ORDERS');
-  fRow('Additional Invoicing Emails',d.invoiceEmails||'—');
-  twoRow('Purchase Orders Required',d.poRequired==='Y'?'Yes':d.poRequired==='N'?'No':'—','PO Delivery Email',d.poEmail||'—');
-  fRow('Site POD Email (TrackPOD)',d.podEmail||'—');
+  fRow('Additional Invoicing Emails',d.invoiceEmails||'\u2014');
+  twoRow('Purchase Orders Required',d.poRequired==='Y'?'Yes':d.poRequired==='N'?'No':'\u2014','PO Delivery Email',d.poEmail||'\u2014');
+  fRow('Proof of Delivery (POD) email',d.podEmail||'\u2014');
 
   // S4 Pricing
   secHdr('4. PRICING');
   chk(10);
   // Pricing table header
-  doc.setFillColor(...BLUE);doc.rect(margin,y,cW,7,'F');
+  doc.setFillColor(...AMBER);doc.rect(margin,y,cW,7,'F');
   doc.setTextColor(255,255,255);doc.setFontSize(8);doc.setFont('helvetica','bold');
   doc.text('Product Code',margin+2,y+5);
   doc.text('Description',margin+50,y+5);
@@ -914,12 +1024,12 @@ async function generatePDF(returnDoc=false) {
     const bulkRows = d.pricing.filter(p=>p.type==='bulk');
     if (bulkRows.length > 0) {
       chk(12);
-      doc.setFillColor(...BL);doc.rect(margin,y,cW,6,'F');
+      doc.setFillColor(...AMBER_L);doc.rect(margin,y,cW,6,'F');
       doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');
       doc.text('BULK ADBLUE®',margin+2,y+4.5);y+=8;
       // Header row
       const bCols = [margin+2, margin+60, margin+95, margin+125, margin+160];
-      doc.setFillColor(...NAVY);doc.rect(margin,y,cW,6,'F');
+      doc.setFillColor(...AMBER);doc.rect(margin,y,cW,6,'F');
       doc.setTextColor(255,255,255);doc.setFontSize(6.5);doc.setFont('helvetica','bold');
       ['Product','Bulk CPL','Freight CPL','Delivered?','Delivered Price on Invoice'].forEach((h,i)=>doc.text(h,bCols[i],y+4.5));
       y+=8;
@@ -945,11 +1055,11 @@ async function generatePDF(returnDoc=false) {
     const packRows = d.pricing.filter(p=>p.type==='packaged');
     if (packRows.length > 0) {
       chk(12);
-      doc.setFillColor(...BL);doc.rect(margin,y,cW,6,'F');
-      doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');
+      doc.setFillColor(...AMBER_L);doc.rect(margin,y,cW,6,'F');
+      doc.setTextColor(...AMBER);doc.setFontSize(7);doc.setFont('helvetica','bold');
       doc.text('PACKAGED PRODUCTS',margin+2,y+4.5);y+=8;
       const pCols = [margin+2, margin+76, margin+120];
-      doc.setFillColor(...NAVY);doc.rect(margin,y,cW,6,'F');
+      doc.setFillColor(...AMBER);doc.rect(margin,y,cW,6,'F');
       doc.setTextColor(255,255,255);doc.setFontSize(6.5);doc.setFont('helvetica','bold');
       ['Product','Price ($/unit)','Freight ($/pallet)'].forEach((h,i)=>doc.text(h,pCols[i],y+4.5));
       y+=8;
@@ -987,7 +1097,7 @@ async function generatePDF(returnDoc=false) {
   }
 
   if(returnDoc) return doc;
-  doc.save(`BioBlue_Site_Admin_${d.customerName.replace(/\s+/g,'_')||'Draft'}_${d.formDate||'undated'}.pdf`);
+  doc.save(((d.generatedSiteName||d.siteName||d.customerName||'Draft').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_'))+'.Admin.pdf');
   showToast('📄 PDF downloaded!');
 }
 
@@ -1049,6 +1159,13 @@ async function updateClientRecord(d, folderId) {
     const set=(col,val)=>{const i=headers.indexOf(col);if(i>-1)newRow[i]=val;};
     set('Client ID',newId);set('Billing Entity',d.customerName);set('Site Name',d.siteName);
     set('Street Address',d.siteAddress);set('Suburb',d.suburb);set('State',d.state);set('Postcode',d.postcode);
+    set('Business Contact Name',d.bizContactName);set('Business Contact Role',d.bizContactRole);
+    set('Business Contact Email',d.bizContactEmail);set('Business Contact Phone',d.bizContactPhone);
+    set('Admin Contact Name',d.adminContactName);set('Admin Contact Role',d.adminContactRole);
+    set('Admin Contact Email',d.adminContactEmail);set('Admin Contact Phone',d.adminContactPhone);
+    set('Contact Name',d.bizContactName);set('Contact Title',d.bizContactRole);
+    set('Contact Mobile',d.bizContactPhone);set('Contact Email',d.bizContactEmail);
+    set('POD Email',d.podEmail);
     set('Site Admin ✓','✓');
     set('Created Date',new Date().toLocaleDateString('en-AU'));set('Created By',d.completedBy);
     set('Notes Log',noteEntry);
@@ -1085,12 +1202,20 @@ async function uploadAndSend() {
   if(!d.customerName.trim()){showToast('⚠️ Customer name required');return;}
   if(!d.formDate){showToast('⚠️ Date required');return;}
   if(!d.siteName.trim()){showToast('⚠️ Site name required');return;}
+  if(!d.bizContactName.trim()){showToast('⚠️ Business Contact — Full Name required');return;}
+  if(!d.bizContactRole.trim()){showToast('⚠️ Business Contact — Title / Role required');return;}
+  if(!d.bizContactEmail.trim()){showToast('⚠️ Business Contact — Email required');return;}
+  if(!d.bizContactPhone.trim()){showToast('⚠️ Business Contact — Phone required');return;}
+  if(!d.adminContactName.trim()){showToast('⚠️ Admin / Invoicing Contact — Full Name required');return;}
+  if(!d.adminContactRole.trim()){showToast('⚠️ Admin / Invoicing Contact — Title / Role required');return;}
+  if(!d.adminContactEmail.trim()){showToast('⚠️ Admin / Invoicing Contact — Email required');return;}
+  if(!d.adminContactPhone.trim()){showToast('⚠️ Admin / Invoicing Contact — Phone required');return;}
   if(!d.completedBy){showToast('⚠️ Please select who completed the form');return;}
 
   showToast('⏳ Generating PDF...');
   const pdfDoc=await generatePDF(true);
   const pdfBlob=pdfDoc.output('blob');
-  const baseName=`BioBlue_Site_Admin_${d.customerName.replace(/\s+/g,'_')}_${d.formDate||'undated'}`;
+  const baseName=((d.generatedSiteName||d.siteName||d.customerName||'Draft').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_'))+'.Admin';
 
   try {
     showToast('☁️ Connecting to Google...');
@@ -1132,7 +1257,9 @@ function confirmClear() {
 }
 function clearAll() {
   ['customerName','formDate','siteName','siteNumber','siteAddress','suburb','postcode',
-   'decisionMaker','decisionMakerPhone','decisionMakerEmail',
+   'bizContactName','bizContactRole','bizContactEmail','bizContactPhone',
+   'adminContactName','adminContactRole','adminContactEmail','adminContactPhone',
+   '_siteLocationName','_descriptor','_generatedSiteName',
    'invoiceEmails','poEmail','podEmail','notes','bdmEmail','carrier',
    'freightBulkCPL','freightPackCPL'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('state').selectedIndex=0;
@@ -1262,19 +1389,22 @@ async function fetchClientDetails(clientId) {
 
     const fields = {
       customerName:  get('Billing Entity'),
-      companyName:   get('Billing Entity'),
       siteName:      get('Site Name') || get('Billing Entity'),
       siteAddress:   get('Street Address'),
       suburb:        get('Suburb'),
       postcode:      get('Postcode'),
-      contactName:   get('Contact Name'),
-      contactRole:   get('Contact Title'),
-      contactMobile: get('Contact Mobile'),
-      contactEmail:  get('Contact Email'),
-      contactPhone:  get('Contact Mobile'),
-      siteContact:   get('Contact Name'),
-      siteMobile:    get('Contact Mobile'),
-      siteEmail:     get('Contact Email'),
+      _siteLocationName: get('Site Location Name'),
+      _descriptor:       get('Descriptor'),
+      _generatedSiteName:get('Site Name'),
+      bizContactName:  get('Business Contact Name') || get('Contact Name'),
+      bizContactRole:  get('Business Contact Role') || get('Contact Title'),
+      bizContactEmail: get('Business Contact Email')|| get('Contact Email'),
+      bizContactPhone: get('Business Contact Phone')|| get('Contact Mobile'),
+      adminContactName:  get('Admin Contact Name'),
+      adminContactRole:  get('Admin Contact Role'),
+      adminContactEmail: get('Admin Contact Email'),
+      adminContactPhone: get('Admin Contact Phone'),
+      podEmail: get('POD Email'),
     };
 
     Object.entries(fields).forEach(([id, val]) => {
