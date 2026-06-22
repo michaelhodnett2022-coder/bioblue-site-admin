@@ -1025,7 +1025,7 @@ async function generatePDF(returnDoc=false) {
     if (bulkRows.length > 0) {
       chk(12);
       doc.setFillColor(...AMBER_L);doc.rect(margin,y,cW,6,'F');
-      doc.setTextColor(...BLUE);doc.setFontSize(7);doc.setFont('helvetica','bold');
+      doc.setTextColor(...AMBER);doc.setFontSize(7);doc.setFont('helvetica','bold');
       doc.text('BULK ADBLUE®',margin+2,y+4.5);y+=8;
       // Header row
       const bCols = [margin+2, margin+60, margin+95, margin+125, margin+160];
