@@ -1146,6 +1146,7 @@ function repairClientRecordsHeaders(wb) {
     'Is Distributor / Reseller','Additional Invoicing Emails','PO Required','PO Delivery Email',
     'BDM Email','Max Vehicle Size','Latest Note',
     'Prospect \u2713','Quote Sent \u2713','Site Admin \u2713','Site Audit \u2713','Pkg Assessment \u2713','Customer \u2713',
+    'Prospect Doc #','Admin Doc #','Audit Doc #','Packaged Doc #','Quote Doc #',
     'Drive Folder ID','Created Date','Created By','Notes Log'
   ];
   const rows = XLSX.utils.sheet_to_json(ws, { header:1 });
@@ -1646,6 +1647,7 @@ async function getAdminSheetId(rootFolderId) {
     'Is Distributor / Reseller','Additional Invoicing Emails','PO Required','PO Delivery Email',
     'BDM Email','Max Vehicle Size','Latest Note',
     'Prospect \u2713','Quote Sent \u2713','Site Admin \u2713','Site Audit \u2713','Pkg Assessment \u2713','Customer \u2713',
+    'Prospect Doc #','Admin Doc #','Audit Doc #','Packaged Doc #','Quote Doc #',
     'Drive Folder ID','Created Date','Created By','Notes Log'
   ];
   const wb = XLSX.utils.book_new();
