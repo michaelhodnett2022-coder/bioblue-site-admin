@@ -335,13 +335,6 @@
         </div>
       </div>
 
-      <div class="field-row full" style="margin-bottom:16px;">
-        <div class="field-group">
-          <label class="field-label">Additional Invoicing Emails <span style="font-size:10px;font-weight:400;color:var(--gray-mid);">(aside from credit application email)</span></label>
-          <input type="text" id="invoiceEmails" placeholder="e.g. accounts@company.com, depot@company.com">
-        </div>
-      </div>
-
       <div class="yn-item" id="yn-po">
         <div class="yn-question">Are Purchase Orders (POs) required for this account?</div>
         <div class="yn-controls">
@@ -356,6 +349,13 @@
             <label class="field-label">If Yes — PO delivery email address</label>
             <input type="email" id="poEmail" placeholder="">
           </div>
+        </div>
+      </div>
+
+      <div class="field-row full" style="margin-top:16px;margin-bottom:16px;">
+        <div class="field-group">
+          <label class="field-label">Additional Invoicing Emails <span style="font-size:10px;font-weight:400;color:var(--gray-mid);">(aside from credit application email)</span></label>
+          <input type="text" id="invoiceEmails" placeholder="e.g. accounts@company.com, depot@company.com">
         </div>
       </div>
 
@@ -548,7 +548,7 @@ function buildPricingTable() {
           <th style="text-align:center;">Active</th>
           <th style="text-align:center;">Bulk CPL</th>
           <th style="text-align:center;">Freight CPL</th>
-          <th style="text-align:center;">Delivered?</th>
+          <th style="text-align:center;">Show as Delivered Price on invoice?</th>
           <th style="text-align:center;">Delivered Price</th>
         </tr>
       </thead>
@@ -933,14 +933,16 @@ function drawStdHeader(doc,d,formLabel,MC,ML){
   doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...NAVY);
   doc.text('Bio',margin,9);const bW=doc.getTextWidth('Bio');
   doc.setTextColor(...BLUE);doc.text('Blue',margin+bW,9);
+  const blueW=doc.getTextWidth('Blue'); // measured BEFORE font size changes below — fixes overlap bug
   doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GRAY);
-  doc.text('  \u00b7  '+formLabel,margin+bW+doc.getTextWidth('Blue'),9);
+  doc.text('  \u00b7  '+formLabel,margin+bW+blueW,9);
   const dv=d.formDate||d.prospectDate||d.auditDate||d.assessDate||'';
   if(dv){let ds=dv;try{ds=new Date(dv+'T12:00:00').toLocaleDateString('en-AU');}catch(e){}doc.text(ds,pW-margin,9,{align:'right'});}
   doc.setDrawColor(...BLUE);doc.setLineWidth(0.4);doc.line(margin,11.5,pW-margin,11.5);
   doc.setFillColor(...MC);doc.rect(margin,13,cW,14,'F');
   doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(255,255,255);
   doc.text(formLabel.toUpperCase(),margin+3,17.5);
+  if (d.docRef) { doc.text(d.docRef,pW-margin-3,17.5,{align:'right'}); }
   const sn=(d.generatedSiteName||d.siteName||d.customerName||'').toUpperCase();
   doc.setFont('helvetica','bold');doc.setFontSize(11);
   doc.text(doc.splitTextToSize(sn,cW-8)[0],margin+3,24);
@@ -970,10 +972,10 @@ function drawStdHeader(doc,d,formLabel,MC,ML){
   return by+37+4;
 }
 
-async function generatePDF(returnDoc=false) {
+async function generatePDF(returnDoc=false, presetData=null) {
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const d=collectData();
+  const d=presetData||collectData();
   const margin=15,pageW=210,cW=pageW-margin*2;
   let y=margin;
   const AMBER=[226,144,89],AMBER_L=[254,243,199],GREEN=[0,135,90],RED=[192,57,43],GRAY=[108,117,125],GL=[240,242,244];
@@ -1031,7 +1033,7 @@ async function generatePDF(returnDoc=false) {
       const bCols = [margin+2, margin+60, margin+95, margin+125, margin+160];
       doc.setFillColor(...AMBER);doc.rect(margin,y,cW,6,'F');
       doc.setTextColor(255,255,255);doc.setFontSize(6.5);doc.setFont('helvetica','bold');
-      ['Product','Bulk CPL','Freight CPL','Delivered?','Delivered Price on Invoice'].forEach((h,i)=>doc.text(h,bCols[i],y+4.5));
+      ['Product','Bulk CPL','Freight CPL','Show as Delivered Price?','Delivered Price on Invoice'].forEach((h,i)=>doc.text(h,bCols[i],y+4.5));
       y+=8;
       bulkRows.forEach((p,i)=>{
         chk(8);
@@ -1163,9 +1165,26 @@ function repairClientRecordsHeaders(wb) {
   console.log('Repaired Client Records headers — added:', missing);
 }
 
-async function updateClientRecord(d, folderId) {
+// =====================================================================
+// FIND EXISTING FILE BY NAME — used to overwrite rather than duplicate
+// =====================================================================
+async function findExistingFile(fileName, folderId) {
+  try {
+    const sr = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${fileName.replace(/'/g,"\\'")}' and '${folderId}' in parents and trashed=false&fields=files(id)`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    const sd = await sr.json();
+    return (sd.files && sd.files.length) ? sd.files[0].id : null;
+  } catch(e) {
+    console.warn('findExistingFile check failed:', e.message);
+    return null;
+  }
+}
+
+async function updateClientRecord(d, folderId, clientId) {
   const fileId = await getAdminSheetId(folderId);
-  if(!fileId){console.warn('Could not get admin sheet');return;}
+  if(!fileId){console.warn('Could not get admin sheet');return null;}
   const dl=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,{headers:{Authorization:`Bearer ${gdriveToken}`}});
   const ab=await dl.arrayBuffer();
   const wb=XLSX.read(new Uint8Array(ab),{type:'array'});
@@ -1173,9 +1192,11 @@ async function updateClientRecord(d, folderId) {
   const ws=wb.Sheets['Client Records'];
   const rows=XLSX.utils.sheet_to_json(ws,{header:1});
   const headers=rows[0]||[];
+  const idCol=headers.indexOf('Client ID');
   const nameCol=headers.indexOf('Billing Entity');
   const adminCol=headers.indexOf('Site Admin ✓');
   const notesCol=headers.indexOf('Notes Log');
+  const docCountCol=headers.indexOf('Admin Doc #');
 
   const pricingSummary = d.pricing.map(p => {
     if (p.type==='bulk') return `BB-ADB-Bulk: ${p.bulkCPL||'—'}¢ + freight ${p.freightCPL||'—'}¢${p.deliveredRequired?' | Delivered: '+p.deliveredPrice+'¢':''}`;
@@ -1183,18 +1204,31 @@ async function updateClientRecord(d, folderId) {
   }).join(' | ');
   const noteEntry=`[Site Admin — ${new Date().toLocaleDateString('en-AU')}, ${d.completedBy}]\n${d.notes||'Site admin form completed.'}\nPricing: ${pricingSummary||'none recorded'}`;
 
+  // Match by Client ID first (reliable, guaranteed present); fall back to name match for legacy rows
   let rowIdx=-1;
-  for(let i=1;i<rows.length;i++){
-    if(rows[i][nameCol]&&rows[i][nameCol].toString().toLowerCase()===d.customerName.toLowerCase()){rowIdx=i;break;}
+  if (clientId) {
+    rowIdx = rows.findIndex((r,i) => i>0 && (r[idCol]||'').toString() === clientId);
+  }
+  if (rowIdx===-1 && d.customerName) {
+    for(let i=1;i<rows.length;i++){
+      if(rows[i][nameCol]&&rows[i][nameCol].toString().toLowerCase()===d.customerName.toLowerCase()){rowIdx=i;break;}
+    }
   }
 
+  let newId = clientId, docCount = 0;
+
   if(rowIdx>-1){
+    newId = rows[rowIdx][idCol] || clientId;
+    const prevCount = docCountCol>-1 ? (parseInt(rows[rowIdx][docCountCol]) || 0) : 0;
+    docCount = prevCount + 1;
     if(adminCol>-1) rows[rowIdx][adminCol]='✓';
+    if(docCountCol>-1) rows[rowIdx][docCountCol]=docCount;
     if(notesCol>-1) rows[rowIdx][notesCol]=(rows[rowIdx][notesCol]?rows[rowIdx][notesCol]+'\n\n':'')+noteEntry;
   } else {
     const existingIds=rows.slice(1).map(r=>r[0]).filter(Boolean);
     const maxId=existingIds.reduce((m,id)=>{const n=parseInt((id+'').replace('BB-',''));return isNaN(n)?m:n>m?n:m;},0);
-    const newId=`BB-${String(maxId+1).padStart(4,'0')}`;
+    newId=`BB-${String(maxId+1).padStart(4,'0')}`;
+    docCount = 1;
     const newRow=new Array(headers.length).fill('');
     const set=(col,val)=>{const i=headers.indexOf(col);if(i>-1)newRow[i]=val;};
     set('Client ID',newId);set('Billing Entity',d.customerName);set('Site Name',d.siteName);
@@ -1207,6 +1241,7 @@ async function updateClientRecord(d, folderId) {
     set('Contact Mobile',d.bizContactPhone);set('Contact Email',d.bizContactEmail);
     set('POD Email',d.podEmail);
     set('Site Admin ✓','✓');
+    set('Admin Doc #',docCount);
     set('Created Date',new Date().toLocaleDateString('en-AU'));set('Created By',d.completedBy);
     set('Notes Log',noteEntry);
     rows.push(newRow);
@@ -1216,7 +1251,7 @@ async function updateClientRecord(d, folderId) {
   const nws=wb.Sheets['Notes Log'];
   if(nws){
     const nr=XLSX.utils.sheet_to_json(nws,{header:1});
-    nr.push([rowIdx>-1?rows[rowIdx][headers.indexOf('Client ID')]:'',d.customerName,d.siteName,new Date().toLocaleString('en-AU'),'Site Admin Form',d.completedBy,d.notes||'Site admin form completed.']);
+    nr.push([newId,d.customerName,d.siteName,new Date().toLocaleString('en-AU'),'Site Admin Form',d.completedBy,d.notes||'Site admin form completed.']);
     wb.Sheets['Notes Log']=XLSX.utils.aoa_to_sheet(nr);
   }
 
@@ -1230,6 +1265,7 @@ async function updateClientRecord(d, folderId) {
   form.append('metadata',new Blob([JSON.stringify({})],{type:'application/json'}));
   form.append('file',blob,CLIENT_RECORDS_NAME);
   await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`,{method:'PATCH',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+  return { newId, docCount };
 }
 
 async function downloadPDF() {
@@ -1257,10 +1293,8 @@ async function uploadAndSend() {
   if(!d.adminContactPhone.trim()){showToast('⚠️ Admin / Invoicing Contact — Phone required');return;}
   if(!d.completedBy){showToast('⚠️ Please select who completed the form');return;}
 
-  showToast('⏳ Generating PDF...');
-  const pdfDoc=await generatePDF(true);
-  const pdfBlob=pdfDoc.output('blob');
   const baseName=((d.generatedSiteName||d.siteName||d.customerName||'Draft').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_'))+'.Admin';
+  let pdfBlob = null;
 
   try {
     showToast('☁️ Connecting to Google...');
@@ -1272,24 +1306,44 @@ async function uploadAndSend() {
     showToast('📁 Finding client folder...');
     const _clientFolderId = await getClientFolderFromRecord(folderId, _clientId, _folderName);
 
-    const form=new FormData();
-    form.append('metadata',new Blob([JSON.stringify({name:baseName+'.pdf',parents:[_clientFolderId]})],{type:'application/json'}));
-    form.append('file',pdfBlob,baseName+'.pdf');
-    const up=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',{method:'POST',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
-    const uploaded=await up.json();
     showToast('📊 Updating client record...');
-    await updateClientRecord(d,folderId);
-    document.getElementById('modalMsg').textContent=`✅ Site Admin Form submitted!\n\n☁️ PDF uploaded to Google Drive\n📊 Client record updated — Site Admin ✓\n${uploaded.webViewLink?'\nDrive link:\n'+uploaded.webViewLink:''}`;
+    const result = await updateClientRecord(d, folderId, _clientId);
+    if (!result) throw new Error('Could not update client record');
+    d.docRef = result.newId + (result.docCount ? '-' + result.docCount : '');
+
+    showToast('⏳ Generating PDF...');
+    const pdfDoc=await generatePDF(true, d);
+    pdfBlob=pdfDoc.output('blob');
+
+    const existingFileId = await findExistingFile(baseName+'.pdf', _clientFolderId);
+    const form=new FormData();
+    let up;
+    if (existingFileId) {
+      form.append('metadata',new Blob([JSON.stringify({})],{type:'application/json'}));
+      form.append('file',pdfBlob,baseName+'.pdf');
+      up=await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=multipart&fields=id,webViewLink`,{method:'PATCH',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+    } else {
+      form.append('metadata',new Blob([JSON.stringify({name:baseName+'.pdf',parents:[_clientFolderId]})],{type:'application/json'}));
+      form.append('file',pdfBlob,baseName+'.pdf');
+      up=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',{method:'POST',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+    }
+    const uploaded=await up.json();
+
+    document.getElementById('modalMsg').textContent=`✅ Site Admin Form submitted!\n\n🆔 Document Ref: ${d.docRef}\n☁️ PDF ${existingFileId?'updated':'uploaded'} to Google Drive\n📊 Client record updated — Site Admin ✓\n${uploaded.webViewLink?'\nDrive link:\n'+uploaded.webViewLink:''}`;
     const _aid = new URLSearchParams(window.location.search).get('client');
     redirectToFieldTools(_aid||'');
     document.getElementById('modal').classList.add('active');
   } catch(e) {
     gdriveToken=null;
-    const url=URL.createObjectURL(pdfBlob);
-    const a=document.createElement('a');a.href=url;a.download=baseName+'.pdf';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url),30000);
-    document.getElementById('modalMsg').textContent=`⚠️ Drive upload failed: ${e.message}\n\nPDF saved to device instead.`;
+    if (pdfBlob) {
+      const url=URL.createObjectURL(pdfBlob);
+      const a=document.createElement('a');a.href=url;a.download=baseName+'.pdf';
+      document.body.appendChild(a);a.click();document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),30000);
+      document.getElementById('modalMsg').textContent=`⚠️ Drive upload failed: ${e.message}\n\nPDF saved to device instead.`;
+    } else {
+      document.getElementById('modalMsg').textContent=`⚠️ Save failed: ${e.message}\n\nPlease try again.`;
+    }
     document.getElementById('modal').classList.add('active');
   }
 }
@@ -1468,6 +1522,12 @@ async function fetchClientDetails(clientId) {
 
     const nameEl = document.getElementById('bannerClientName');
     if (nameEl) nameEl.textContent = get('Billing Entity') || clientId;
+
+    // Show the next document reference (current count + 1) in the banner
+    const _prevCount = parseInt(get('Admin Doc #')) || 0;
+    const _nextRef = clientId + '-' + (_prevCount + 1);
+    const bannerIdEl = document.getElementById('bannerClientId');
+    if (bannerIdEl) bannerIdEl.textContent = 'Ref: ' + clientId + '  ·  This submission will be ' + _nextRef;
 
     // Hide the retry button once loaded
     const rb = document.getElementById('prefillRetryBtn');
