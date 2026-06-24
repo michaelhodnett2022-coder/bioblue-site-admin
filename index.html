@@ -950,7 +950,7 @@ function drawStdHeader(doc,d,formLabel,MC,ML){
   doc.text(doc.splitTextToSize(sn,cW-8)[0],margin+3,24);
   if (d.trackpodName) {
     doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(255,255,255);
-    doc.text('Trackpod Name: '+d.trackpodName,margin+3,29);
+    doc.text('Site Name (Trackpod): '+d.trackpodName,margin+3,29);
   }
   const by=33.5;doc.setFillColor(...ML);doc.rect(margin,by,cW,37,'F');
   const bm=margin+3,hw=(cW-8)/2;
@@ -1174,10 +1174,10 @@ function repairClientRecordsHeaders(wb) {
 // =====================================================================
 // FIND EXISTING FILE BY NAME — used to overwrite rather than duplicate
 // =====================================================================
-async function findExistingFile(fileName, folderId) {
+async function findExistingFile(suffix, folderId) {
   try {
     const sr = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='${fileName.replace(/'/g,"\\'")}' and '${folderId}' in parents and trashed=false&fields=files(id)`,
+      `https://www.googleapis.com/drive/v3/files?q=name contains '${suffix.replace(/'/g,"\\'")}' and '${folderId}' in parents and trashed=false&fields=files(id,name)`,
       { headers: { Authorization: `Bearer ${gdriveToken}` } }
     );
     const sd = await sr.json();
@@ -1321,7 +1321,7 @@ async function uploadAndSend() {
     const pdfDoc=await generatePDF(true, d);
     pdfBlob=pdfDoc.output('blob');
 
-    const existingFileId = await findExistingFile(baseName+'.pdf', _clientFolderId);
+    const existingFileId = await findExistingFile('.Admin.pdf', _clientFolderId);
     const form=new FormData();
     let up;
     if (existingFileId) {
