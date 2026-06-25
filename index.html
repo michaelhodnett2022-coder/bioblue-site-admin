@@ -966,7 +966,7 @@ function drawStdHeader(doc,d,formLabel,MC,ML){
   const addr=[d.siteAddress,d.suburb,d.state,d.postcode].filter(Boolean).join(', ');
   doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...BLK);
   doc.text((addr||'\u2014').substring(0,65),bm,by+26);
-  divL(by+28.5);lbl('BUSINESS CONTACT',bm,by+31.5);
+  divL(by+28.5);lbl('SITE CONTACT',bm,by+31.5);
   const bizN=d.bizContactName||d.contactName||'\u2014';
   doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...BLK);
   doc.text(bizN.substring(0,28),bm,by+35.5);
@@ -1008,6 +1008,7 @@ async function generatePDF(returnDoc=false, presetData=null) {
 
   // S3 Invoicing
   secHdr('3. INVOICING & PURCHASE ORDERS');
+  twoRow('Distributor / Reseller Site',d.isDistributor==='Y'?'Yes':d.isDistributor==='N'?'No':'\u2014','','');
   fRow('Additional Invoicing Emails',d.invoiceEmails||'\u2014');
   twoRow('Purchase Orders Required',d.poRequired==='Y'?'Yes':d.poRequired==='N'?'No':'\u2014','PO Delivery Email',d.poEmail||'\u2014');
   fRow('Proof of Delivery (POD) email',d.podEmail||'\u2014');
@@ -1154,7 +1155,7 @@ function repairClientRecordsHeaders(wb) {
     'Is Distributor / Reseller','Additional Invoicing Emails','PO Required','PO Delivery Email',
     'BDM Email','Max Vehicle Size','Latest Note',
     'Prospect \u2713','Quote Sent \u2713','Site Admin \u2713','Site Audit \u2713','Pkg Assessment \u2713','Customer \u2713',
-    'Prospect Doc #','Admin Doc #','Audit Doc #','Packaged Doc #','Quote Doc #',
+    'Prospect Doc #','Admin Doc #','Audit Doc #','Packaged Doc #','Quote Doc #','Record Status',
     'Drive Folder ID','Created Date','Created By','Notes Log'
   ];
   const rows = XLSX.utils.sheet_to_json(ws, { header:1 });
@@ -1222,35 +1223,48 @@ async function updateClientRecord(d, folderId, clientId) {
   }
 
   let newId = clientId, docCount = 0;
+  const activeProducts = d.pricing.map(p => p.code).join(', ');
 
-  if(rowIdx>-1){
-    newId = rows[rowIdx][idCol] || clientId;
-    const prevCount = docCountCol>-1 ? (parseInt(rows[rowIdx][docCountCol]) || 0) : 0;
-    docCount = prevCount + 1;
-    if(adminCol>-1) rows[rowIdx][adminCol]='✓';
-    if(docCountCol>-1) rows[rowIdx][docCountCol]=docCount;
-    if(notesCol>-1) rows[rowIdx][notesCol]=(rows[rowIdx][notesCol]?rows[rowIdx][notesCol]+'\n\n':'')+noteEntry;
-  } else {
+  const isExistingRow = rowIdx > -1;
+  if (!isExistingRow) {
     const existingIds=rows.slice(1).map(r=>r[0]).filter(Boolean);
     const maxId=existingIds.reduce((m,id)=>{const n=parseInt((id+'').replace('BB-',''));return isNaN(n)?m:n>m?n:m;},0);
     newId=`BB-${String(maxId+1).padStart(4,'0')}`;
-    docCount = 1;
-    const newRow=new Array(headers.length).fill('');
-    const set=(col,val)=>{const i=headers.indexOf(col);if(i>-1)newRow[i]=val;};
-    set('Client ID',newId);set('Billing Entity',d.customerName);set('Site Name',d.siteName);
-    set('Street Address',d.siteAddress);set('Suburb',d.suburb);set('State',d.state);set('Postcode',d.postcode);
-    set('Business Contact Name',d.bizContactName);set('Business Contact Role',d.bizContactRole);
-    set('Business Contact Email',d.bizContactEmail);set('Business Contact Phone',d.bizContactPhone);
-    set('Admin Contact Name',d.adminContactName);set('Admin Contact Role',d.adminContactRole);
-    set('Admin Contact Email',d.adminContactEmail);set('Admin Contact Phone',d.adminContactPhone);
-    set('Contact Name',d.bizContactName);set('Contact Title',d.bizContactRole);
-    set('Contact Mobile',d.bizContactPhone);set('Contact Email',d.bizContactEmail);
-    set('POD Email',d.podEmail);
-    set('Site Admin ✓','✓');
-    set('Admin Doc #',docCount);
+    rows.push(new Array(headers.length).fill(''));
+    rowIdx = rows.length - 1;
+  } else {
+    newId = rows[rowIdx][idCol] || clientId;
+  }
+
+  const prevCount = docCountCol>-1 ? (parseInt(rows[rowIdx][docCountCol]) || 0) : 0;
+  docCount = prevCount + 1;
+
+  const set=(col,val)=>{const i=headers.indexOf(col);if(i>-1 && val)rows[rowIdx][i]=val;};
+  set('Client ID',newId);set('Billing Entity',d.customerName);set('Site Name',d.siteName);
+  set('Street Address',d.siteAddress);set('Suburb',d.suburb);set('State',d.state);set('Postcode',d.postcode);
+  set('Business Contact Name',d.bizContactName);set('Business Contact Role',d.bizContactRole);
+  set('Business Contact Email',d.bizContactEmail);set('Business Contact Phone',d.bizContactPhone);
+  set('Admin Contact Name',d.adminContactName);set('Admin Contact Role',d.adminContactRole);
+  set('Admin Contact Email',d.adminContactEmail);set('Admin Contact Phone',d.adminContactPhone);
+  set('Contact Name',d.bizContactName);set('Contact Title',d.bizContactRole);
+  set('Contact Mobile',d.bizContactPhone);set('Contact Email',d.bizContactEmail);
+  set('POD Email',d.podEmail);
+  set('Additional Invoicing Emails', d.invoiceEmails);
+  set('PO Required', d.poRequired);
+  set('PO Delivery Email', d.poEmail);
+  set('BDM Email', d.bdmEmail);
+  set('Active Products', activeProducts);
+  if(adminCol>-1) rows[rowIdx][adminCol]='✓';
+  if(docCountCol>-1) rows[rowIdx][docCountCol]=docCount;
+  // Record Status — Admin submission always confirms a real client, regardless of prior state
+  const recordStatusCol = headers.indexOf('Record Status');
+  if (recordStatusCol>-1) rows[rowIdx][recordStatusCol]='Client';
+
+  if (isExistingRow) {
+    if(notesCol>-1) rows[rowIdx][notesCol]=(rows[rowIdx][notesCol]?rows[rowIdx][notesCol]+'\n\n':'')+noteEntry;
+  } else {
     set('Created Date',new Date().toLocaleDateString('en-AU'));set('Created By',d.completedBy);
-    set('Notes Log',noteEntry);
-    rows.push(newRow);
+    if(notesCol>-1) rows[rowIdx][notesCol]=noteEntry;
   }
 
   // Notes Log tab
@@ -1519,6 +1533,10 @@ async function fetchClientDetails(clientId) {
       if (el && val) el.value = val;
     });
 
+    // Is Distributor / Reseller — sourced from Prospect's Opportunity section, pre-fill the Y/N toggle visually
+    const _isDistributorVal = get('Is Distributor / Reseller');
+    if (_isDistributorVal) setYN('distrib', _isDistributorVal);
+
     const stateVal = get('State');
     const stateEl  = document.getElementById('state');
     if (stateEl && stateVal) {
@@ -1714,7 +1732,7 @@ async function getAdminSheetId(rootFolderId) {
     'Is Distributor / Reseller','Additional Invoicing Emails','PO Required','PO Delivery Email',
     'BDM Email','Max Vehicle Size','Latest Note',
     'Prospect \u2713','Quote Sent \u2713','Site Admin \u2713','Site Audit \u2713','Pkg Assessment \u2713','Customer \u2713',
-    'Prospect Doc #','Admin Doc #','Audit Doc #','Packaged Doc #','Quote Doc #',
+    'Prospect Doc #','Admin Doc #','Audit Doc #','Packaged Doc #','Quote Doc #','Record Status',
     'Drive Folder ID','Created Date','Created By','Notes Log'
   ];
   const wb = XLSX.utils.book_new();
