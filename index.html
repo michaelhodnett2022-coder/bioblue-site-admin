@@ -159,7 +159,7 @@
     <div style="font-size:20px;">🏢</div>
     <div style="flex:1;">
       <div style="font-size:11px;font-weight:700;color:#e67e22;text-transform:uppercase;letter-spacing:0.5px;">Active Client</div>
-      <div style="font-size:14px;font-weight:700;color:#1f2937;" id="bannerClientName">Active Client Ready to Load</div>
+      <div style="font-size:14px;font-weight:700;color:#1f2937;" id="bannerClientName">Tap below to load full details</div>
       <div style="font-size:11px;color:#6b7280;" id="bannerClientId"></div>
     </div>
     <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#e67e22;text-decoration:none;
@@ -536,18 +536,20 @@ function buildPricingTable() {
   bulkContainer.innerHTML = `
     <table class="pricing-table" style="table-layout:fixed;width:100%;min-width:500px;margin-bottom:16px;">
       <colgroup>
-        <col style="width:30%;">
-        <col style="width:10%;">
-        <col style="width:17%;">
-        <col style="width:17%;">
-        <col style="width:13%;">
-        <col style="width:13%;">
+        <col style="width:25%;">
+        <col style="width:9%;">
+        <col style="width:14%;">
+        <col style="width:14%;">
+        <col style="width:14%;">
+        <col style="width:12%;">
+        <col style="width:12%;">
       </colgroup>
       <thead>
         <tr>
           <th>Bulk Product</th>
           <th style="text-align:center;">Active</th>
           <th style="text-align:center;">Bulk CPL</th>
+          <th style="text-align:center;">Tank Hire CPL</th>
           <th style="text-align:center;">Freight CPL</th>
           <th style="text-align:center;">Show as Delivered Price on invoice?</th>
           <th style="text-align:center;">Delivered Price</th>
@@ -566,6 +568,11 @@ function buildPricingTable() {
           <td>
             <input type="text" class="price-input" id="bulk_cpl"
               placeholder="e.g. 0.52" style="width:100%;"
+              oninput="calcDelivered()">
+          </td>
+          <td>
+            <input type="text" class="price-input" id="bulk_tankhire"
+              placeholder="e.g. 0.05" style="width:100%;"
               oninput="calcDelivered()">
           </td>
           <td>
@@ -622,6 +629,7 @@ function onBulkTick(checked) {
   if (row) row.style.background = checked ? 'var(--green-light)' : '';
   if (!checked) {
     document.getElementById('bulk_cpl').value = '';
+    document.getElementById('bulk_tankhire').value = '';
     document.getElementById('bulk_freight').value = '';
     document.getElementById('bulk_delivered_chk').checked = false;
     document.getElementById('bulk_delivered_price').value = '';
@@ -668,11 +676,12 @@ function applyDeliveredStyle(show) {
 function calcDelivered() {
   const chk = document.getElementById('bulk_delivered_chk')?.checked;
   if (!chk) { document.getElementById('bulk_delivered_price').value = ''; return; }
-  const bulk    = parseFloat(document.getElementById('bulk_cpl').value)     || 0;
-  const freight = parseFloat(document.getElementById('bulk_freight').value)  || 0;
-  const total   = (bulk + freight).toFixed(2);
+  const bulk     = parseFloat(document.getElementById('bulk_cpl').value)      || 0;
+  const tankHire = parseFloat(document.getElementById('bulk_tankhire').value) || 0;
+  const freight  = parseFloat(document.getElementById('bulk_freight').value)  || 0;
+  const total    = (bulk + tankHire + freight).toFixed(2);
   const el = document.getElementById('bulk_delivered_price');
-  if (el) el.value = (bulk + freight) > 0 ? total : '';
+  if (el) el.value = (bulk + tankHire + freight) > 0 ? total : '';
 }
 
 
@@ -697,6 +706,7 @@ function getPricingData() {
       desc: 'Bulk AdBlue® (BioBlue Delivered)',
       active: true,
       bulkCPL: document.getElementById('bulk_cpl')?.value?.trim() || '',
+      tankHireCPL: document.getElementById('bulk_tankhire')?.value?.trim() || '',
       freightCPL: document.getElementById('bulk_freight')?.value?.trim() || '',
       deliveredRequired: document.getElementById('bulk_delivered_chk')?.checked || false,
       deliveredPrice: document.getElementById('bulk_delivered_price')?.value?.trim() || '',
@@ -948,10 +958,6 @@ function drawStdHeader(doc,d,formLabel,MC,ML){
   const sn=(d.generatedSiteName||d.siteName||d.customerName||'').toUpperCase();
   doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(255,255,255);
   doc.text(doc.splitTextToSize(sn,cW-8)[0],margin+3,24);
-  if (d.trackpodName) {
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(255,255,255);
-    doc.text('Site Name (Trackpod): '+d.trackpodName,margin+3,29);
-  }
   const by=33.5;doc.setFillColor(...ML);doc.rect(margin,by,cW,37,'F');
   const bm=margin+3,hw=(cW-8)/2;
   const lbl=(t,x,y)=>{doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(...MC);doc.text(t,x,y);};
@@ -1037,10 +1043,10 @@ async function generatePDF(returnDoc=false, presetData=null) {
       doc.setTextColor(...AMBER);doc.setFontSize(7);doc.setFont('helvetica','bold');
       doc.text('BULK ADBLUE®',margin+2,y+4.5);y+=8;
       // Header row
-      const bCols = [margin+2, margin+60, margin+95, margin+125, margin+160];
+      const bCols = [margin+2, margin+50, margin+78, margin+106, margin+135, margin+164];
       doc.setFillColor(...AMBER);doc.rect(margin,y,cW,6,'F');
       doc.setTextColor(255,255,255);doc.setFontSize(6.5);doc.setFont('helvetica','bold');
-      ['Product','Bulk CPL','Freight CPL','Show as Delivered Price?','Delivered Price on Invoice'].forEach((h,i)=>doc.text(h,bCols[i],y+4.5));
+      ['Product','Bulk CPL','Tank Hire CPL','Freight CPL','Show as Delivered Price?','Delivered Price on Invoice'].forEach((h,i)=>doc.text(h,bCols[i],y+4.5));
       y+=8;
       bulkRows.forEach((p,i)=>{
         chk(8);
@@ -1050,12 +1056,13 @@ async function generatePDF(returnDoc=false, presetData=null) {
         doc.text(p.code,bCols[0],y+5.5);
         doc.setTextColor(30,40,50);doc.setFontSize(8);doc.setFont('helvetica','normal');
         doc.text(p.bulkCPL?p.bulkCPL+'¢':'—',bCols[1],y+5.5);
-        doc.text(p.freightCPL?p.freightCPL+'¢':'—',bCols[2],y+5.5);
-        doc.text(p.deliveredRequired?'Yes':'No',bCols[3],y+5.5);
+        doc.text(p.tankHireCPL?p.tankHireCPL+'¢':'—',bCols[2],y+5.5);
+        doc.text(p.freightCPL?p.freightCPL+'¢':'—',bCols[3],y+5.5);
+        doc.text(p.deliveredRequired?'Yes':'No',bCols[4],y+5.5);
         if(p.deliveredRequired&&p.deliveredPrice){
           doc.setTextColor(...GREEN);doc.setFont('helvetica','bold');
-          doc.text(p.deliveredPrice+'¢',bCols[4],y+5.5);
-        } else {doc.text('—',bCols[4],y+5.5);}
+          doc.text(p.deliveredPrice+'¢',bCols[5],y+5.5);
+        } else {doc.text('—',bCols[5],y+5.5);}
         y+=10;
       });
       y+=4;
@@ -1206,7 +1213,7 @@ async function updateClientRecord(d, folderId, clientId) {
   const docCountCol=headers.indexOf('Admin Doc #');
 
   const pricingSummary = d.pricing.map(p => {
-    if (p.type==='bulk') return `BB-ADB-Bulk: ${p.bulkCPL||'—'}¢ + freight ${p.freightCPL||'—'}¢${p.deliveredRequired?' | Delivered: '+p.deliveredPrice+'¢':''}`;
+    if (p.type==='bulk') return `BB-ADB-Bulk: ${p.bulkCPL||'—'}¢${p.tankHireCPL?' + tank hire '+p.tankHireCPL+'¢':''} + freight ${p.freightCPL||'—'}¢${p.deliveredRequired?' | Delivered: '+p.deliveredPrice+'¢':''}`;
     return `${p.code}: ${p.price||'—'}/unit | freight ${p.freight||'—'}/pallet${p.carrier?' ('+p.carrier+')':''}`;
   }).join(' | ');
   const noteEntry=`[Site Admin — ${new Date().toLocaleDateString('en-AU')}, ${d.completedBy}]\n${d.notes||'Site admin form completed.'}\nPricing: ${pricingSummary||'none recorded'}`;
@@ -1387,7 +1394,7 @@ function clearAll() {
   for(const k in ynValues) delete ynValues[k];
   ['yn-distrib','yn-po'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.remove('yes','no');el.querySelectorAll('.yn-btn').forEach(b=>b.classList.remove('active-y','active-n'));}});
   // Clear bulk
-  ['bulk_cpl','bulk_freight','bulk_delivered_price'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['bulk_cpl','bulk_tankhire','bulk_freight','bulk_delivered_price'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const bulkChk=document.getElementById('chk_bulk');if(bulkChk)bulkChk.checked=false;
   const delChk=document.getElementById('bulk_delivered_chk');if(delChk)delChk.checked=false;
   toggleDelivered(false);
@@ -1439,7 +1446,7 @@ async function loadClientFromURL() {
     try {
       const _sessName = sessionStorage.getItem('bb_selected_client_name');
       const _nm = document.getElementById('bannerClientName');
-      if (_nm) _nm.textContent = _sessName || 'Active Client Ready to Load';
+      if (_nm) _nm.textContent = _sessName || 'Tap below to load full details';
     } catch(e) {}
   }
 
@@ -1760,7 +1767,7 @@ function showPrefillRetry(clientId) {
   const banner = document.getElementById('clientBanner');
   if (!banner) return;
   const _nm = document.getElementById('bannerClientName');
-  if (_nm) _nm.textContent = 'Active Client Ready to Load';
+  if (_nm) _nm.textContent = 'Tap below to load full details';
   let btn = document.getElementById('prefillRetryBtn');
   if (!btn) {
     btn = document.createElement('button');
