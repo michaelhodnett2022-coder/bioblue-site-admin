@@ -2210,9 +2210,11 @@ function showPrefillRetry(clientId) {
     btn = document.createElement('button');
     btn.id = 'prefillRetryBtn';
     btn.textContent = '\u21bb Tap to load client details';
-    btn.style.cssText = 'margin-top:8px;padding:8px 14px;border:none;border-radius:8px;background:#1A9FD4;color:#fff;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;';
+    btn.style.cssText = 'margin-top:8px;padding:8px 14px;border:none;border-radius:8px;background:#1A9FD4;color:#fff;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;width:100%;';
     btn.onclick = () => { btn.textContent = '\u23f3 Loading...'; fetchClientDetails(clientId); };
-    banner.appendChild(btn);
+    // Append inside the name/ref block (second child), not the outer banner
+    const nameBlock = _nm ? _nm.parentElement : banner;
+    nameBlock.appendChild(btn);
   } else {
     btn.style.display = 'inline-block';
     btn.textContent = '\u21bb Tap to load client details';
