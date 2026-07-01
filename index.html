@@ -200,6 +200,7 @@
         <div style="font-size:10px;font-weight:700;color:#d35400;text-transform:uppercase;letter-spacing:0.5px;">Active Client</div>
         <div style="font-size:14px;font-weight:700;color:#1f2937;" id="bannerClientName">Tap below to load full details</div>
         <div style="font-size:11px;color:#6b7280;" id="bannerClientId"></div>
+        <button id="prefillRetryBtn" style="display:none;margin-top:8px;padding:8px 14px;border:none;border-radius:8px;background:#1A9FD4;color:#fff;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;width:100%;">↻ Tap to load client details</button>
       </div>
       <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#d35400;text-decoration:none;background:white;border:1.5px solid #d35400;border-radius:6px;padding:5px 10px;">
         Change Client
@@ -2199,25 +2200,18 @@ async function getAdminSheetId(rootFolderId) {
 function showPrefillRetry(clientId) {
   const banner = document.getElementById('clientBanner');
   if (!banner) return;
+  banner.style.display = 'flex';
   const _nm = document.getElementById('bannerClientName');
   if (_nm) {
     const _urlName = new URLSearchParams(window.location.search).get('name');
     const _sessName = sessionStorage.getItem('bb_selected_client_name');
     _nm.textContent = _urlName || _sessName || 'Tap below to load full details';
   }
-  let btn = document.getElementById('prefillRetryBtn');
-  if (!btn) {
-    btn = document.createElement('button');
-    btn.id = 'prefillRetryBtn';
-    btn.textContent = '\u21bb Tap to load client details';
-    btn.style.cssText = 'margin-top:8px;padding:8px 14px;border:none;border-radius:8px;background:#1A9FD4;color:#fff;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;width:100%;';
-    btn.onclick = () => { btn.textContent = '\u23f3 Loading...'; fetchClientDetails(clientId); };
-    // Append inside the name/ref block (second child), not the outer banner
-    const nameBlock = _nm ? _nm.parentElement : banner;
-    nameBlock.appendChild(btn);
-  } else {
-    btn.style.display = 'inline-block';
-    btn.textContent = '\u21bb Tap to load client details';
+  const btn = document.getElementById('prefillRetryBtn');
+  if (btn) {
+    btn.style.display = 'block';
+    btn.textContent = '↻ Tap to load client details';
+    btn.onclick = () => { btn.textContent = '⏳ Loading...'; fetchClientDetails(clientId); };
   }
 }
 </script>
