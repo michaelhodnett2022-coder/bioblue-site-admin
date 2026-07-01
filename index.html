@@ -162,6 +162,8 @@
   <div class="header-group">
     <div class="header-group-label">This Admin Form's Data</div>
     <button class="btn-header-full btn-header-secondary" onclick="confirmClear()">🗑️ Clear Form</button>
+    <button class="btn-header-full btn-header-secondary" onclick="recallPastAdmin()">🗂️ Recall Past Admin Form</button>
+    <button class="btn-header-full btn-header-secondary" onclick="saveDraft()">💾 Save Draft</button>
   </div>
 
   <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBar"></div></div>
@@ -220,6 +222,32 @@
     <p style="color:rgba(255,255,255,0.6);font-size:11px;margin:0;line-height:1.4;">
       Client details load automatically once a client is selected in Field Tools. To set up a new site, create it in the Prospect / Client form first.
     </p>
+  </div>
+
+  <!-- DRAFT RESTORE BANNER -->
+  <div id="draftBanner" style="display:none;background:#fffbe6;border:2px solid #f0c040;border-radius:10px;margin-bottom:14px;padding:14px 16px;align-items:center;gap:12px;flex-wrap:wrap;">
+    <span style="font-size:20px;">📂</span>
+    <div style="flex:1;min-width:180px;">
+      <div style="font-weight:700;font-size:13.5px;color:#7a5c00;">Saved draft found</div>
+      <div style="font-size:12px;color:#9a7a20;">Last saved <span data-draft-date>—</span>. Would you like to restore it?</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="loadDraft();hideDraftBanner();" style="padding:8px 18px;border-radius:8px;background:#f0c040;border:none;font-weight:700;font-size:13px;cursor:pointer;color:#5a3e00;">✅ Restore Draft</button>
+      <button onclick="hideDraftBanner();" style="padding:8px 14px;border-radius:8px;background:white;border:2px solid #ccc;font-weight:600;font-size:13px;cursor:pointer;color:#666;">Dismiss</button>
+    </div>
+  </div>
+
+  <!-- EXISTING SUBMISSION BANNER -->
+  <div id="existingSubmissionBanner" style="display:none;background:#e8f2fb;border:2px solid #1A9FD4;border-radius:10px;margin-bottom:14px;padding:14px 16px;align-items:center;gap:12px;flex-wrap:wrap;">
+    <span style="font-size:20px;">ℹ️</span>
+    <div style="flex:1;min-width:180px;">
+      <div style="font-weight:700;font-size:13.5px;color:#003466;">An admin form already exists for this client</div>
+      <div style="font-size:12px;color:#0055a5;">Submitted <span data-existing-date>—</span>. Starting a new one here will replace it — use Recall Past Admin Form instead if you just need to update it.</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="recallPastAdmin();hideExistingBanner();" style="padding:8px 18px;border-radius:8px;background:#1A9FD4;border:none;font-weight:700;font-size:13px;cursor:pointer;color:white;">🗂️ Recall Past Admin Form</button>
+      <button onclick="hideExistingBanner();" style="padding:8px 14px;border-radius:8px;background:white;border:2px solid #ccc;font-weight:600;font-size:13px;cursor:pointer;color:#666;">Dismiss</button>
+    </div>
   </div>
 
   <!-- SECTION 1: CLIENT DETAILS -->
@@ -509,7 +537,31 @@
 <div class="sticky-footer">
   <button class="btn btn-clear" onclick="confirmClear()">🗑️ Clear</button>
   <button class="btn btn-dl" onclick="downloadPDF()">⬇️ Download</button>
-  <button class="btn btn-submit" onclick="uploadAndSend()">☁️ Upload & Send</button>
+  <button class="btn btn-submit" onclick="openQCModal()">☁️ Upload & Send</button>
+</div>
+
+<!-- QUALITY CHECK MODAL -->
+<div class="modal-overlay" id="qcModal">
+  <div class="modal-box">
+    <h3 style="color:var(--navy);">Final Quality Check</h3>
+    <p style="font-size:12.5px;color:var(--gray-mid);margin-bottom:18px;">Quick check before this goes to Logistics</p>
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 14px;background:#f7f9fb;border:1.5px solid #e2e8f0;border-radius:10px;margin-bottom:10px;">
+      <input type="checkbox" id="qcCheck1" onchange="updateQCBtn()" style="width:20px;height:20px;margin-top:1px;accent-color:var(--navy);flex-shrink:0;cursor:pointer;">
+      <label for="qcCheck1" style="font-size:13.5px;color:#1f2937;line-height:1.4;cursor:pointer;">I have reviewed all sections of this admin form and confirm the information is accurate</label>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 14px;background:#f7f9fb;border:1.5px solid #e2e8f0;border-radius:10px;margin-bottom:10px;">
+      <input type="checkbox" id="qcCheck2" onchange="updateQCBtn()" style="width:20px;height:20px;margin-top:1px;accent-color:var(--navy);flex-shrink:0;cursor:pointer;">
+      <label for="qcCheck2" style="font-size:13.5px;color:#1f2937;line-height:1.4;cursor:pointer;">I have checked for spelling and data entry errors throughout</label>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 14px;background:#f7f9fb;border:1.5px solid #e2e8f0;border-radius:10px;margin-bottom:10px;">
+      <input type="checkbox" id="qcCheck3" onchange="updateQCBtn()" style="width:20px;height:20px;margin-top:1px;accent-color:var(--navy);flex-shrink:0;cursor:pointer;">
+      <label for="qcCheck3" style="font-size:13.5px;color:#1f2937;line-height:1.4;cursor:pointer;">I have confirmed no required information is missing</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" style="background:white;border:1.5px solid #d1d5db;color:#4b5563;border-radius:8px;padding:10px 16px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;" onclick="closeQCModal()">Go Back &amp; Review</button>
+      <button class="btn-primary" id="qcSubmitBtn" disabled style="background:#9ca3af;color:white;cursor:not-allowed;border-radius:8px;padding:10px 16px;border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;" onclick="confirmQCAndSubmit()">☁️ Upload &amp; Send</button>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL -->
@@ -1358,6 +1410,291 @@ async function downloadPDF() {
   try{await generatePDF(false);}catch(e){showToast('❌ '+e.message);}
 }
 
+// =====================================================================
+// JSON DRAFT + RECALL SYSTEM
+// =====================================================================
+let _draftFileId = null;
+let _adminJsonFileId = null;
+const ADMIN_JSON_SUBFOLDER = 'Admin Data';
+
+function hideDraftBanner() { const b = document.getElementById('draftBanner'); if (b) b.style.display = 'none'; }
+function hideExistingBanner() { const b = document.getElementById('existingSubmissionBanner'); if (b) b.style.display = 'none'; }
+
+function openQCModal() {
+  ['qcCheck1','qcCheck2','qcCheck3'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+  updateQCBtn();
+  document.getElementById('qcModal')?.classList.add('active');
+}
+function closeQCModal() { document.getElementById('qcModal')?.classList.remove('active'); }
+function updateQCBtn() {
+  const all = ['qcCheck1','qcCheck2','qcCheck3'].every(id => document.getElementById(id)?.checked);
+  const btn = document.getElementById('qcSubmitBtn');
+  if (!btn) return;
+  btn.disabled = !all;
+  btn.style.background = all ? 'var(--navy)' : '#9ca3af';
+  btn.style.cursor = all ? 'pointer' : 'not-allowed';
+}
+function confirmQCAndSubmit() {
+  if (!['qcCheck1','qcCheck2','qcCheck3'].every(id => document.getElementById(id)?.checked)) return;
+  closeQCModal();
+  uploadAndSend();
+}
+
+async function _getAdminJsonFolder(clientId) {
+  const rootRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,
+    { headers: { Authorization: `Bearer ${gdriveToken}` } });
+  const rootData = await rootRes.json();
+  if (!rootData.files?.length) throw new Error('Could not find BioBlue Audits folder');
+  const rootFolderId = rootData.files[0].id;
+  const d = collectData();
+  const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.customerName || 'Unknown Client');
+  if (!clientFolderId) throw new Error('Could not find client folder');
+  return { rootFolderId, jsonFolderId: await getOrCreateClientFolder(clientFolderId, ADMIN_JSON_SUBFOLDER) };
+}
+
+async function saveDraft() {
+  const clientId = new URLSearchParams(window.location.search).get('client');
+  if (!clientId) { showToast('⚠️ No client loaded — cannot save draft'); return; }
+  showToast('💾 Saving draft...');
+  try {
+    await getDriveToken();
+    const { jsonFolderId } = await _getAdminJsonFolder(clientId);
+    const d = collectData();
+    const fileName = `BB_Admin_${clientId}.json`;
+    const blob = new Blob([JSON.stringify({ ...d, _draftSavedAt: new Date().toISOString(), _clientId: clientId }, null, 2)], { type: 'application/json' });
+    const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${fileName}' and '${jsonFolderId}' in parents and trashed=false&fields=files(id)`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
+    const sd = await sr.json();
+    const fm = new FormData();
+    if (sd.files?.length) {
+      fm.append('metadata', new Blob([JSON.stringify({})], { type: 'application/json' }));
+      fm.append('file', blob, fileName);
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${sd.files[0].id}?uploadType=multipart`, { method: 'PATCH', headers: { Authorization: `Bearer ${gdriveToken}` }, body: fm });
+    } else {
+      fm.append('metadata', new Blob([JSON.stringify({ name: fileName, parents: [jsonFolderId] })], { type: 'application/json' }));
+      fm.append('file', blob, fileName);
+      await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { Authorization: `Bearer ${gdriveToken}` }, body: fm });
+    }
+    showToast('💾 Draft saved — any BDM can resume from any device');
+  } catch(e) { console.warn('saveDraft failed:', e.message); showToast('❌ Could not save draft: ' + e.message); }
+}
+
+async function checkForDraft(rootFolderId, clientId) {
+  if (!clientId) return;
+  try {
+    const d = collectData();
+    const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.customerName || '');
+    if (!clientFolderId) return;
+    const jsonFolderId = await getOrCreateClientFolder(clientFolderId, ADMIN_JSON_SUBFOLDER);
+    const fileName = `BB_Admin_${clientId}.json`;
+    const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${fileName}' and '${jsonFolderId}' in parents and trashed=false&fields=files(id,modifiedTime)`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
+    const sd = await sr.json();
+    if (!sd.files?.length) return;
+    _draftFileId = sd.files[0].id;
+    const dateEl = document.querySelector('[data-draft-date]');
+    if (dateEl) dateEl.textContent = new Date(sd.files[0].modifiedTime).toLocaleString('en-AU');
+    const banner = document.getElementById('draftBanner');
+    if (banner) banner.style.display = 'flex';
+  } catch(e) { console.warn('checkForDraft failed (non-fatal):', e.message); }
+}
+
+async function checkForExistingSubmission(rootFolderId, clientId) {
+  if (!clientId || _adminJsonFileId) return;
+  try {
+    const d = collectData();
+    const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.customerName || '');
+    if (!clientFolderId) return;
+    const jsonFolderId = await getOrCreateClientFolder(clientFolderId, ADMIN_JSON_SUBFOLDER);
+    const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=name contains '_admin_data.json' and '${jsonFolderId}' in parents and trashed=false&fields=files(id,modifiedTime)`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
+    const sd = await sr.json();
+    if (!sd.files?.length) return;
+    const dateEl = document.querySelector('[data-existing-date]');
+    if (dateEl) dateEl.textContent = new Date(sd.files[0].modifiedTime).toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'numeric' });
+    const banner = document.getElementById('existingSubmissionBanner');
+    if (banner) banner.style.display = 'flex';
+  } catch(e) { console.warn('checkForExistingSubmission failed (non-fatal):', e.message); }
+}
+
+async function loadDraft() {
+  if (!_draftFileId) { showToast('⚠️ No draft to restore'); return; }
+  showToast('⏳ Restoring draft...');
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${_draftFileId}?alt=media`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
+    if (!res.ok) throw new Error('Download failed');
+    const data = await res.json();
+    restoreFormFields(data);
+    const banner = document.getElementById('draftBanner');
+    if (banner) {
+      banner.style.background = 'rgba(0,135,90,0.1)';
+      banner.style.borderColor = 'rgba(0,135,90,0.4)';
+      banner.innerHTML = '<div style="font-size:13px;font-weight:700;color:#00875a;padding:4px 0;">✅ Draft restored — make your changes and submit when ready</div>';
+    }
+    showToast('✅ Draft restored');
+  } catch(e) { console.warn('loadDraft failed:', e.message); showToast('⚠️ Could not restore draft: ' + e.message); }
+}
+
+async function recallPastAdmin() {
+  showToast('🔍 Searching for saved admin forms...');
+  try {
+    await getDriveToken();
+    const sr = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name contains '_admin_data.json' and trashed=false&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc&pageSize=50`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } });
+    const sd = await sr.json();
+    const files = sd.files || [];
+    if (!files.length) { showToast('⚠️ No saved admin forms found'); return; }
+    showAdminPicker(files);
+  } catch(e) { console.warn('recallPastAdmin failed:', e.message); showToast('❌ Could not search: ' + e.message); }
+}
+
+let _adminPickerFiles = [];
+function showAdminPicker(files) {
+  document.getElementById('adminPickerModal')?.remove();
+  _adminPickerFiles = files.map(f => ({ ...f, displayName: f.name.replace(/_admin_data\.json$/i,'').replace(/_/g,' ') }));
+  const modal = document.createElement('div');
+  modal.id = 'adminPickerModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const fmt = iso => iso ? new Date(iso).toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'numeric' }) + ' ' + new Date(iso).toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit' }) : '';
+  const rows = list => list.map(f =>
+    `<div onclick="selectAdminFile('${f.id}','${f.name}')" style="padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08);transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
+      <div style="font-size:13px;font-weight:600;color:white;">${f.displayName}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:2px;">Last modified: ${fmt(f.modifiedTime)}</div>
+    </div>`).join('') || '<div style="padding:20px;text-align:center;color:rgba(255,255,255,0.5);font-size:13px;">No matches</div>';
+  modal.innerHTML = `<div style="background:#003466;border-radius:12px;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.4);overflow:hidden;">
+    <div style="padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;">
+      <div><div style="font-size:15px;font-weight:700;color:white;">📂 Recall Past Admin Form</div>
+      <div style="font-size:11px;opacity:0.7;color:white;margin-top:2px;">${files.length} saved form${files.length!==1?'s':''} found</div></div>
+      <button onclick="document.getElementById('adminPickerModal').remove()" style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;">✕</button>
+    </div>
+    <div style="padding:14px 20px;">
+      <input type="text" placeholder="Search..." autocomplete="off" oninput="filterAdminPicker(this.value)"
+        style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:white;font-family:'DM Sans',sans-serif;font-size:13px;box-sizing:border-box;">
+    </div>
+    <div id="adminPickerResults" style="overflow-y:auto;flex:1;border-top:1px solid rgba(255,255,255,0.1);">${rows(_adminPickerFiles)}</div>
+    <div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.1);">
+      <p style="font-size:11px;color:rgba(255,255,255,0.5);margin:0;">Select a form to restore all fields.</p>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function filterAdminPicker(query) {
+  const results = document.getElementById('adminPickerResults');
+  if (!results) return;
+  const q = query.toLowerCase().trim();
+  const matches = q ? _adminPickerFiles.filter(f => f.displayName.toLowerCase().includes(q)) : _adminPickerFiles;
+  const fmt = iso => iso ? new Date(iso).toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'numeric' }) + ' ' + new Date(iso).toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit' }) : '';
+  results.innerHTML = matches.map(f =>
+    `<div onclick="selectAdminFile('${f.id}','${f.name}')" style="padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08);transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
+      <div style="font-size:13px;font-weight:600;color:white;">${f.displayName}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:2px;">Last modified: ${fmt(f.modifiedTime)}</div>
+    </div>`).join('') || '<div style="padding:20px;text-align:center;color:rgba(255,255,255,0.5);font-size:13px;">No matches</div>';
+}
+
+async function selectAdminFile(fileId, fileName) {
+  document.getElementById('adminPickerModal')?.remove();
+  hideExistingBanner();
+  showToast('⏳ Loading admin form...');
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
+    if (!res.ok) throw new Error('Download failed: ' + res.status);
+    const data = await res.json();
+    _adminJsonFileId = fileId;
+    restoreFormFields(data);
+    showToast('✅ Admin form loaded — make your changes then submit to update');
+  } catch(e) { console.warn('selectAdminFile failed:', e.message); showToast('❌ Could not load form: ' + e.message); }
+}
+
+function restoreFormFields(data) {
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null && val !== '') el.value = val; };
+
+  setVal('customerName', data.customerName);
+  setVal('formDate', data.formDate);
+  setVal('siteName', data.siteName);
+  setVal('siteAddress', data.siteAddress);
+  setVal('suburb', data.suburb);
+  setVal('postcode', data.postcode);
+  if (data.state) {
+    const stEl = document.getElementById('state');
+    if (stEl) for (let i = 0; i < stEl.options.length; i++) if (stEl.options[i].value === data.state) { stEl.selectedIndex = i; break; }
+  }
+  setVal('bizContactName', data.bizContactName);
+  setVal('bizContactRole', data.bizContactRole);
+  setVal('bizContactEmail', data.bizContactEmail);
+  setVal('bizContactPhone', data.bizContactPhone);
+  setVal('adminContactName', data.adminContactName);
+  setVal('adminContactRole', data.adminContactRole);
+  setVal('adminContactEmail', data.adminContactEmail);
+  setVal('adminContactPhone', data.adminContactPhone);
+  setVal('invoiceEmails', data.invoiceEmails);
+  setVal('poEmail', data.poEmail);
+  setVal('podEmail', data.podEmail);
+  setVal('podEmail2', data.podEmail2);
+  setVal('podEmail3', data.podEmail3);
+  setVal('notes', data.notes);
+  if (data.completedBy) {
+    const cbEl = document.getElementById('completedBy');
+    if (cbEl) { cbEl.value = data.completedBy; autoFill(data.completedBy); }
+  }
+
+  // Y/N values (isDistributor, poRequired)
+  if (data.isDistributor) try { setYN('distrib', data.isDistributor); } catch(e) {}
+  if (data.poRequired) try { setYN('po', data.poRequired); } catch(e) {}
+
+  // Pricing table — rebuild from saved data then populate
+  try { buildPricingTable(); } catch(e) { console.warn('restoreFormFields: buildPricingTable failed:', e.message); }
+  if (data.pricing && Array.isArray(data.pricing)) {
+    data.pricing.forEach(p => {
+      if (p.type === 'bulk') {
+        const chk = document.getElementById('chk_bulk');
+        if (chk) { chk.checked = true; chk.dispatchEvent(new Event('change')); }
+        setVal('bulk_cpl', p.bulkCPL);
+        setVal('bulk_tankhire', p.tankHireCPL);
+        setVal('bulk_freight', p.freightCPL);
+        if (p.deliveredRequired) {
+          const dChk = document.getElementById('bulk_delivered_chk');
+          if (dChk) { dChk.checked = true; dChk.dispatchEvent(new Event('change')); }
+          setVal('bulk_delivered_price', p.deliveredPrice);
+        }
+      } else if (p.type === 'packaged') {
+        const safeCode = p.code.replace(/-/g, '_');
+        const chk = document.getElementById('chk_' + safeCode);
+        if (chk) { chk.checked = true; chk.dispatchEvent(new Event('change')); }
+        setVal('price_' + safeCode, p.price);
+        setVal('freight_' + safeCode, p.freight);
+        setVal('carrier_' + safeCode, p.carrier);
+      }
+    });
+  }
+
+  updateProgress();
+}
+
+async function saveAdminJSON(clientFolderId, baseName, d) {
+  try {
+    const jsonFolderId = await getOrCreateClientFolder(clientFolderId, ADMIN_JSON_SUBFOLDER);
+    const fileName = baseName + '_admin_data.json';
+    const blob = new Blob([JSON.stringify({ ...d, _savedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+    if (!_adminJsonFileId) {
+      const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=name contains '_admin_data.json' and '${jsonFolderId}' in parents and trashed=false&fields=files(id)`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
+      const sd = await sr.json();
+      if (sd.files?.length) _adminJsonFileId = sd.files[0].id;
+    }
+    const fm = new FormData();
+    if (_adminJsonFileId) {
+      fm.append('metadata', new Blob([JSON.stringify({})], { type: 'application/json' }));
+      fm.append('file', blob, fileName);
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${_adminJsonFileId}?uploadType=multipart`, { method: 'PATCH', headers: { Authorization: `Bearer ${gdriveToken}` }, body: fm });
+    } else {
+      fm.append('metadata', new Blob([JSON.stringify({ name: fileName, parents: [jsonFolderId] })], { type: 'application/json' }));
+      fm.append('file', blob, fileName);
+      const cr = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { Authorization: `Bearer ${gdriveToken}` }, body: fm });
+      const created = await cr.json();
+      _adminJsonFileId = created.id;
+    }
+  } catch(e) { console.warn('saveAdminJSON failed (non-fatal):', e.message); }
+}
+
 async function uploadAndSend() {
   const _clientIdCheck = new URLSearchParams(window.location.search).get('client');
   if (!_clientIdCheck) {
@@ -1413,6 +1750,14 @@ async function uploadAndSend() {
       up=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',{method:'POST',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
     }
     const uploaded=await up.json();
+
+    // Save JSON backup for future recall + delete the in-progress draft
+    await saveAdminJSON(_clientFolderId, baseName, d);
+    if (_draftFileId) {
+      fetch(`https://www.googleapis.com/drive/v3/files/${_draftFileId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${gdriveToken}` } })
+        .catch(e => console.warn('Draft cleanup failed (non-fatal):', e.message));
+      _draftFileId = null;
+    }
 
     document.getElementById('modalMsg').textContent=`✅ Site Admin Form submitted!\n\n🆔 Document Ref: ${d.docRef}\n☁️ PDF ${existingFileId?'updated':'uploaded'} to Google Drive\n📊 Client record updated — Site Admin ✓\n${uploaded.webViewLink?'\nDrive link:\n'+uploaded.webViewLink:''}`;
     const _aid = new URLSearchParams(window.location.search).get('client');
@@ -1630,6 +1975,10 @@ async function fetchClientDetails(clientId) {
     if (typeof updateProgress === 'function') updateProgress();
     showToast('✅ Client details loaded — ' + (get('Billing Entity') || clientId));
 
+    // Check for saved draft and any existing submission — both non-fatal
+    checkForDraft(fd.files[0].id, clientId);
+    checkForExistingSubmission(fd.files[0].id, clientId);
+
   } catch(e) {
     showToast('⚠️ Could not load client — tap to retry');
     showPrefillRetry(clientId);
@@ -1649,7 +1998,29 @@ function redirectToFieldTools(clientId) {
 // =====================================================================
 // GET OR CREATE CLIENT FOLDER IN DRIVE
 // =====================================================================
+const _folderIdCache = {};
+
 async function getOrCreateClientFolder(parentFolderId, folderName) {
+  const cacheKey = parentFolderId + '::' + folderName;
+  if (_folderIdCache[cacheKey]) return _folderIdCache[cacheKey];
+  const searchRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name='${folderName.replace(/'/g,"\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`,
+    { headers: { Authorization: `Bearer ${gdriveToken}` } }
+  );
+  const searchData = await searchRes.json();
+  if (searchData.files && searchData.files.length > 0) {
+    _folderIdCache[cacheKey] = searchData.files[0].id;
+    return _folderIdCache[cacheKey];
+  }
+  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${gdriveToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentFolderId] })
+  });
+  const created = await createRes.json();
+  _folderIdCache[cacheKey] = created.id;
+  return _folderIdCache[cacheKey];
+}
   // Search for existing folder with this name
   const searchRes = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=name='${folderName.replace(/'/g,"\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`,
