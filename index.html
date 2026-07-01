@@ -28,11 +28,18 @@
   body { font-family:'DM Sans',sans-serif;background:#f0f4f8;color:var(--gray-dark);min-height:100vh;font-size:15px;-webkit-font-smoothing:antialiased; }
 
   .app-header { background:linear-gradient(135deg,#d35400 0%,#e67e22 100%);color:white;padding:20px 20px 16px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-lg); }
-  .header-top { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px; }
+  .header-inner { max-width:820px;margin:0 auto; }
+  .header-logo-row { display:flex;align-items:center;gap:10px;margin-bottom:14px; }
   .logo-badge { background:rgba(255,255,255,0.2);border-radius:8px;padding:6px 10px;font-family:'DM Mono',monospace;font-size:13px;font-weight:500;letter-spacing:1px;color:#fde68a; }
   .header-title { font-size:17px;font-weight:700; }
   .header-subtitle { font-size:12px;opacity:0.7;font-weight:300; }
-  .progress-bar-wrap { background:rgba(255,255,255,0.15);border-radius:4px;height:5px;overflow:hidden;margin-top:10px; }
+  .header-group { margin-bottom:12px; }
+  .header-group:last-child { margin-bottom:0; }
+  .header-group-label { font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:rgba(255,255,255,0.55);margin-bottom:6px; }
+  .btn-header-full { display:flex;width:100%;box-sizing:border-box;margin-bottom:6px;justify-content:center;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap; }
+  .btn-header-full:last-child { margin-bottom:0; }
+  .btn-header-secondary { background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3); }
+  .progress-bar-wrap { background:rgba(255,255,255,0.15);border-radius:4px;height:5px;overflow:hidden;margin-top:14px; }
   .progress-bar-fill { height:100%;background:#64d2ff;border-radius:4px;transition:width 0.4s ease;width:0%; }
   .progress-label { font-size:11px;opacity:0.7;margin-top:4px;text-align:right; }
 
@@ -131,20 +138,35 @@
 </head>
 <body>
 
+<!-- HEADER -->
 <div class="app-header">
-  <div class="header-top">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div class="logo-badge">BIOBLUE</div>
-      <div>
-        <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.8);text-decoration:none;margin-bottom:4px;">← Field Tools</a>
-        <div class="header-title">Site Administration Form</div>
-        <div class="header-subtitle">Client Setup · Pricing · Invoicing</div>
-      </div>
+<div class="header-inner">
+  <div class="header-logo-row">
+    <div class="logo-badge">BIOBLUE</div>
+    <div>
+      <div class="header-title">Site Administration Form</div>
+      <div class="header-subtitle">Client Setup · Pricing · Invoicing</div>
     </div>
-    <button onclick="confirmClear()" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">🗑️ Clear</button>
   </div>
+
+  <div class="header-group">
+    <div class="header-group-label">Client</div>
+    <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" class="btn-header-full btn-header-secondary" style="position:relative;padding-left:42px;">
+      <span style="position:absolute;left:7px;top:50%;transform:translateY(-50%);width:24px;height:24px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 24 24" width="15" height="15"><polygon points="2,12 11,4 11,9.5 22,9.5 22,14.5 11,14.5 11,20" fill="#d35400"/></svg>
+      </span>
+      <span>Change Client — Return to Field Tools Home Page</span>
+    </a>
+  </div>
+
+  <div class="header-group">
+    <div class="header-group-label">This Admin Form's Data</div>
+    <button class="btn-header-full btn-header-secondary" onclick="confirmClear()">🗑️ Clear Form</button>
+  </div>
+
   <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBar"></div></div>
   <div class="progress-label" id="progressLabel">0% complete</div>
+</div>
 </div>
 
 <div class="main-content">
@@ -152,35 +174,53 @@
 <input type="hidden" id="_trackpodName">
 <input type="hidden" id="_descriptor">
 <input type="hidden" id="_generatedSiteName">
-  <!-- CLIENT BANNER -->
-  <div id="clientBanner" style="display:none;align-items:center;gap:12px;
-      background:#fef5e7;border:1.5px solid #e67e22;
-      border-radius:10px;padding:12px 16px;margin:16px 16px 0;flex-wrap:wrap;">
-    <div style="font-size:20px;">🏢</div>
-    <div style="flex:1;">
-      <div style="font-size:11px;font-weight:700;color:#e67e22;text-transform:uppercase;letter-spacing:0.5px;">Active Client</div>
-      <div style="font-size:14px;font-weight:700;color:#1f2937;" id="bannerClientName">Tap below to load full details</div>
-      <div style="font-size:11px;color:#6b7280;" id="bannerClientId"></div>
-    </div>
-    <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#e67e22;text-decoration:none;
-        background:white;border:1.5px solid #e67e22;border-radius:6px;padding:5px 10px;">
-      Change Client
-    </a>
-  </div>
-  <div id="noClientBanner" style="display:none;align-items:center;gap:12px;
-      background:#fff7ed;border:1.5px solid #f59e0b;
-      border-radius:10px;padding:12px 16px;margin:16px 16px 0;">
-    <div style="font-size:20px;">⚠️</div>
-    <div style="flex:1;">
-      <div style="font-size:13px;font-weight:700;color:#92400e;">No client selected</div>
-      <div style="font-size:12px;color:#78350f;">Go back to Field Tools and select a client first</div>
-    </div>
-    <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#92400e;text-decoration:none;
-        background:white;border:1.5px solid #f59e0b;border-radius:6px;padding:5px 10px;white-space:nowrap;">
-      ← Field Tools
-    </a>
-  </div>
 
+  <!-- ══ GETTING STARTED — STEP 1: LOAD CLIENT ══ -->
+  <div id="startHero" style="
+    background:linear-gradient(135deg,#d35400 0%,#e67e22 100%);
+    border-radius:16px;padding:20px 18px 18px;margin-bottom:14px;
+    box-shadow:0 4px 18px rgba(180,60,0,0.18);
+    position:relative;overflow:hidden;">
+    <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.06);pointer-events:none;"></div>
+    <div style="position:absolute;bottom:-20px;right:30px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,0.04);pointer-events:none;"></div>
+
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <div style="width:24px;height:24px;border-radius:50%;background:#e8192c;border:2px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(232,25,44,0.4);">
+        <span style="color:white;font-size:13px;font-weight:700;">1</span>
+      </div>
+      <label style="color:white;font-size:13px;font-weight:700;margin:0;letter-spacing:0.3px;text-transform:uppercase;">Load Your Client</label>
+    </div>
+
+    <div id="clientBanner" style="display:none;align-items:center;gap:12px;
+        background:rgba(255,255,255,0.95);border-radius:10px;padding:12px 14px;margin-bottom:10px;flex-wrap:wrap;">
+      <div style="font-size:20px;">🏢</div>
+      <div style="flex:1;">
+        <div style="font-size:10px;font-weight:700;color:#d35400;text-transform:uppercase;letter-spacing:0.5px;">Active Client</div>
+        <div style="font-size:14px;font-weight:700;color:#1f2937;" id="bannerClientName">Tap below to load full details</div>
+        <div style="font-size:11px;color:#6b7280;" id="bannerClientId"></div>
+      </div>
+      <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#d35400;text-decoration:none;background:white;border:1.5px solid #d35400;border-radius:6px;padding:5px 10px;">
+        Change Client
+      </a>
+    </div>
+
+    <div id="noClientBanner" style="display:none;align-items:center;gap:12px;
+        background:rgba(255,255,255,0.95);border:2px solid #f59e0b;
+        border-radius:10px;padding:14px 14px;margin-bottom:10px;">
+      <div style="font-size:24px;">⚠️</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:#92400e;">No client selected</div>
+        <div style="font-size:12px;color:#78350f;margin-top:2px;line-height:1.4;">Select or create a client in Field Tools before starting an admin form.</div>
+      </div>
+      <a href="https://michaelhodnett2022-coder.github.io/bioblue-field-tools" style="font-size:11px;font-weight:600;color:#92400e;text-decoration:none;background:white;border:1.5px solid #f59e0b;border-radius:6px;padding:6px 12px;white-space:nowrap;flex-shrink:0;">
+        ← Field Tools
+      </a>
+    </div>
+
+    <p style="color:rgba(255,255,255,0.6);font-size:11px;margin:0;line-height:1.4;">
+      Client details load automatically once a client is selected in Field Tools. To set up a new site, create it in the Prospect / Client form first.
+    </p>
+  </div>
 
   <!-- SECTION 1: CLIENT DETAILS -->
   <div class="section-card">
@@ -1435,11 +1475,11 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 // INIT
 document.addEventListener('DOMContentLoaded',()=>{
-  buildPricingTable();
+  try{ buildPricingTable(); }catch(e){ console.warn('Page-load: buildPricingTable failed:',e.message); }
   document.getElementById('formDate').value=new Date().toISOString().split('T')[0];
   document.getElementById('completedBy').value='Michael Hodnett';
   autoFill('Michael Hodnett');
-  loadClientFromURL();
+  try{ loadClientFromURL(); }catch(e){ console.warn('Page-load: loadClientFromURL failed:',e.message); }
   updateProgress();
 });
 
@@ -1457,14 +1497,16 @@ async function loadClientFromURL() {
     return;
   }
 
-  // Show the banner immediately with the client name from session (no token needed).
+  // Show the banner immediately with the client name — URL param first
+  // (guaranteed present whenever navigated from the hub), sessionStorage as fallback.
   if (banner) {
     banner.style.display = 'flex';
     document.getElementById('bannerClientId').textContent = 'Ref: ' + clientId;
     try {
+      const _urlName = new URLSearchParams(window.location.search).get('name');
       const _sessName = sessionStorage.getItem('bb_selected_client_name');
       const _nm = document.getElementById('bannerClientName');
-      if (_nm) _nm.textContent = _sessName || 'Tap below to load full details';
+      if (_nm) _nm.textContent = _urlName || _sessName || 'Tap below to load full details';
     } catch(e) {}
   }
 
@@ -1787,7 +1829,11 @@ function showPrefillRetry(clientId) {
   const banner = document.getElementById('clientBanner');
   if (!banner) return;
   const _nm = document.getElementById('bannerClientName');
-  if (_nm) _nm.textContent = 'Tap below to load full details';
+  if (_nm) {
+    const _urlName = new URLSearchParams(window.location.search).get('name');
+    const _sessName = sessionStorage.getItem('bb_selected_client_name');
+    _nm.textContent = _urlName || _sessName || 'Tap below to load full details';
+  }
   let btn = document.getElementById('prefillRetryBtn');
   if (!btn) {
     btn = document.createElement('button');
