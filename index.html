@@ -639,15 +639,14 @@ function buildPricingTable() {
   // ── BULK TABLE ──────────────────────────────────────────────────
   const bulkContainer = document.getElementById('bulkTableWrap');
   bulkContainer.innerHTML = `
-    <table class="pricing-table" style="table-layout:fixed;width:100%;min-width:500px;margin-bottom:16px;">
+    <table class="pricing-table" style="table-layout:fixed;width:100%;min-width:500px;margin-bottom:0;">
       <colgroup>
-        <col style="width:25%;">
-        <col style="width:9%;">
+        <col style="width:22%;">
+        <col style="width:8%;">
         <col style="width:14%;">
         <col style="width:14%;">
         <col style="width:14%;">
-        <col style="width:12%;">
-        <col style="width:12%;">
+        <col style="width:28%;">
       </colgroup>
       <thead>
         <tr>
@@ -656,11 +655,11 @@ function buildPricingTable() {
           <th style="text-align:center;">Bulk CPL</th>
           <th style="text-align:center;">Tank Hire CPL</th>
           <th style="text-align:center;">Freight CPL</th>
-          <th style="text-align:center;">Show as Delivered Price on invoice?</th>
-          <th style="text-align:center;">Delivered Price</th>
+          <th style="text-align:center;">Total CPL</th>
         </tr>
       </thead>
       <tbody>
+        <!-- LINE 1: CPL inputs + auto total -->
         <tr id="row_bulk">
           <td>
             <span class="price-code">BB-ADB-Bulk</span>
@@ -674,28 +673,55 @@ function buildPricingTable() {
             <input type="text" class="price-input" id="bulk_cpl"
               placeholder="e.g. 0.52" style="width:100%;"
               oninput="calcDelivered()">
+            <div style="font-size:9px;color:var(--gray-mid);text-align:center;margin-top:2px;">CPL</div>
           </td>
           <td>
             <input type="text" class="price-input" id="bulk_tankhire"
               placeholder="e.g. 0.05" style="width:100%;"
               oninput="calcDelivered()">
+            <div style="font-size:9px;color:var(--gray-mid);text-align:center;margin-top:2px;">CPL</div>
           </td>
           <td>
             <input type="text" class="price-input" id="bulk_freight"
               placeholder="e.g. 0.08" style="width:100%;"
               oninput="calcDelivered()">
+            <div style="font-size:9px;color:var(--gray-mid);text-align:center;margin-top:2px;">CPL</div>
           </td>
           <td style="text-align:center;vertical-align:middle;">
-            <label style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;">
+            <div id="bulk_total_cpl" style="font-size:18px;font-weight:700;color:var(--navy);letter-spacing:-0.5px;">—</div>
+            <div style="font-size:9px;color:var(--gray-mid);margin-top:1px;">CPL</div>
+          </td>
+        </tr>
+        <!-- LINE 2: Delivered price question + tick box -->
+        <tr id="row_bulk_delivered_q" style="display:none;">
+          <td colspan="6" style="padding:10px 12px;background:#f8fafc;border-top:1px dashed var(--gray-light);">
+            <label style="display:flex;align-items:center;gap:12px;cursor:pointer;">
               <input type="checkbox" class="price-check" id="bulk_delivered_chk"
-                onchange="toggleDelivered(this.checked)">
-              <span style="font-size:9px;color:var(--gray-mid);font-weight:600;text-align:center;line-height:1.2;">Delivered<br>Price on<br>Invoice</span>
+                onchange="toggleDelivered(this.checked)"
+                style="width:18px;height:18px;flex-shrink:0;">
+              <span style="font-size:13px;color:var(--gray-dark);font-weight:500;line-height:1.4;">
+                Does this client require a combined <strong>"Delivered Price"</strong> only to show on their invoice?
+              </span>
             </label>
           </td>
-          <td>
-            <input type="text" class="price-input" id="bulk_delivered_price"
-              placeholder="¢/L" style="width:100%;background:#f0f4f8;color:var(--gray-mid);"
-              readonly>
+        </tr>
+        <!-- LINE 3: Delivered price — always visible when bulk active, styling changes on tick -->
+        <tr id="row_bulk_delivered_price" style="display:none;">
+          <td colspan="6" id="bulk_delivered_cell"
+            style="padding:14px 16px;background:#f0f4f8;border-top:1px solid var(--gray-light);transition:background 0.2s,border-color 0.2s;">
+            <div style="display:flex;align-items:center;gap:16px;">
+              <div style="flex:1;">
+                <div id="bulk_delivered_label" style="font-size:12px;font-weight:700;color:var(--gray-mid);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Delivered Price</div>
+                <div id="bulk_delivered_hint" style="font-size:11px;color:var(--gray-mid);line-height:1.4;">Tick the box above to activate — combined CPL that will appear on this client's invoice</div>
+              </div>
+              <div style="text-align:center;">
+                <input type="text" class="price-input" id="bulk_delivered_price"
+                  placeholder="—"
+                  style="width:110px;text-align:center;font-size:22px;font-weight:700;color:var(--gray-mid);border-color:var(--gray-light);background:white;transition:all 0.2s;"
+                  readonly>
+                <div style="font-size:10px;font-weight:700;color:var(--gray-mid);margin-top:2px;" id="bulk_delivered_cpl_label">CPL</div>
+              </div>
+            </div>
           </td>
         </tr>
       </tbody>
@@ -732,12 +758,18 @@ function buildPricingTable() {
 function onBulkTick(checked) {
   const row = document.getElementById('row_bulk');
   if (row) row.style.background = checked ? 'var(--green-light)' : '';
+  const qRow = document.getElementById('row_bulk_delivered_q');
+  if (qRow) qRow.style.display = checked ? '' : 'none';
+  const priceRow = document.getElementById('row_bulk_delivered_price');
+  if (priceRow) priceRow.style.display = checked ? '' : 'none';
   if (!checked) {
     document.getElementById('bulk_cpl').value = '';
     document.getElementById('bulk_tankhire').value = '';
     document.getElementById('bulk_freight').value = '';
     document.getElementById('bulk_delivered_chk').checked = false;
     document.getElementById('bulk_delivered_price').value = '';
+    const totalEl = document.getElementById('bulk_total_cpl');
+    if (totalEl) totalEl.textContent = '—';
     applyDeliveredStyle(false);
   }
 }
@@ -748,13 +780,17 @@ function toggleDelivered(show) {
     document.getElementById('deliveredWarningModal').style.display = 'flex';
     return;
   }
-  // Unticking — just clear immediately
+  // Unticking — clear and hide Line 3
+  const priceRow = document.getElementById('row_bulk_delivered_price');
+  if (priceRow) priceRow.style.display = 'none';
   applyDeliveredStyle(false);
   calcDelivered();
 }
 
 function confirmDelivered() {
   document.getElementById('deliveredWarningModal').style.display = 'none';
+  const priceRow = document.getElementById('row_bulk_delivered_price');
+  if (priceRow) priceRow.style.display = '';
   applyDeliveredStyle(true);
   calcDelivered();
 }
@@ -764,29 +800,48 @@ function cancelDelivered() {
   // Untick the checkbox
   const chk = document.getElementById('bulk_delivered_chk');
   if (chk) chk.checked = false;
+  const priceRow = document.getElementById('row_bulk_delivered_price');
+  if (priceRow) priceRow.style.display = 'none';
   applyDeliveredStyle(false);
   document.getElementById('bulk_delivered_price').value = '';
 }
 
-function applyDeliveredStyle(show) {
-  const el = document.getElementById('bulk_delivered_price');
-  if (el) {
-    el.style.background   = show ? 'var(--green-light)' : '#f0f4f8';
-    el.style.color        = show ? 'var(--green)'       : 'var(--gray-mid)';
-    el.style.fontWeight   = show ? '700'                : '400';
-    el.style.borderColor  = show ? 'var(--green)'       : 'var(--gray-light)';
+function applyDeliveredStyle(active) {
+  const cell  = document.getElementById('bulk_delivered_cell');
+  const label = document.getElementById('bulk_delivered_label');
+  const hint  = document.getElementById('bulk_delivered_hint');
+  const el    = document.getElementById('bulk_delivered_price');
+  const cpl   = document.getElementById('bulk_delivered_cpl_label');
+
+  if (active) {
+    if (cell)  { cell.style.background = 'var(--green-light)'; cell.style.borderTop = '2px solid var(--green)'; }
+    if (label) { label.textContent = '⭐ Delivered Price Customer'; label.style.color = 'var(--green)'; }
+    if (hint)  { hint.textContent = 'Combined CPL that will appear on this client\'s invoice'; hint.style.color = 'var(--green)'; }
+    if (el)    { el.style.fontSize = '24px'; el.style.fontWeight = '800'; el.style.color = 'var(--green)'; el.style.borderColor = 'var(--green)'; }
+    if (cpl)   { cpl.style.color = 'var(--green)'; }
+  } else {
+    if (cell)  { cell.style.background = '#f0f4f8'; cell.style.borderTop = '1px solid var(--gray-light)'; }
+    if (label) { label.textContent = 'Delivered Price'; label.style.color = 'var(--gray-mid)'; }
+    if (hint)  { hint.textContent = 'Tick the box above to activate — combined CPL that will appear on this client\'s invoice'; hint.style.color = 'var(--gray-mid)'; }
+    if (el)    { el.style.fontSize = '22px'; el.style.fontWeight = '700'; el.style.color = 'var(--gray-mid)'; el.style.borderColor = 'var(--gray-light)'; el.value = ''; }
+    if (cpl)   { cpl.style.color = 'var(--gray-mid)'; }
   }
 }
 
 function calcDelivered() {
-  const chk = document.getElementById('bulk_delivered_chk')?.checked;
-  if (!chk) { document.getElementById('bulk_delivered_price').value = ''; return; }
   const bulk     = parseFloat(document.getElementById('bulk_cpl').value)      || 0;
   const tankHire = parseFloat(document.getElementById('bulk_tankhire').value) || 0;
   const freight  = parseFloat(document.getElementById('bulk_freight').value)  || 0;
-  const total    = (bulk + tankHire + freight).toFixed(2);
-  const el = document.getElementById('bulk_delivered_price');
-  if (el) el.value = (bulk + tankHire + freight) > 0 ? total : '';
+  const total    = bulk + tankHire + freight;
+
+  // Always update the Total CPL display (Line 1), even when delivered not ticked
+  const totalEl = document.getElementById('bulk_total_cpl');
+  if (totalEl) totalEl.textContent = total > 0 ? total.toFixed(2) : '—';
+
+  // Only update the delivered price field (Line 3) if tick box is active
+  const chk = document.getElementById('bulk_delivered_chk')?.checked;
+  const el  = document.getElementById('bulk_delivered_price');
+  if (el) el.value = (chk && total > 0) ? total.toFixed(2) : '';
 }
 
 
@@ -813,6 +868,7 @@ function getPricingData() {
       bulkCPL: document.getElementById('bulk_cpl')?.value?.trim() || '',
       tankHireCPL: document.getElementById('bulk_tankhire')?.value?.trim() || '',
       freightCPL: document.getElementById('bulk_freight')?.value?.trim() || '',
+      totalCPL: document.getElementById('bulk_total_cpl')?.textContent?.trim() || '',
       deliveredRequired: document.getElementById('bulk_delivered_chk')?.checked || false,
       deliveredPrice: document.getElementById('bulk_delivered_price')?.value?.trim() || '',
       type: 'bulk',
@@ -1152,10 +1208,10 @@ async function generatePDF(returnDoc=false, presetData=null) {
       doc.setTextColor(...AMBER);doc.setFontSize(7);doc.setFont('helvetica','bold');
       doc.text('BULK ADBLUE®',margin+2,y+4.5);y+=8;
       // Header row
-      const bCols = [margin+2, margin+50, margin+78, margin+106, margin+135, margin+164];
+      const bCols = [margin+2, margin+46, margin+74, margin+102, margin+130, margin+158];
       doc.setFillColor(...AMBER);doc.rect(margin,y,cW,6,'F');
       doc.setTextColor(255,255,255);doc.setFontSize(6.5);doc.setFont('helvetica','bold');
-      ['Product','Bulk CPL','Tank Hire CPL','Freight CPL','Show as Delivered Price?','Delivered Price on Invoice'].forEach((h,i)=>doc.text(h,bCols[i],y+4.5));
+      ['Product','Bulk CPL','Tank Hire CPL','Freight CPL','Total CPL','Delivered Price'].forEach((h,i)=>doc.text(h,bCols[i],y+4.5));
       y+=8;
       bulkRows.forEach((p,i)=>{
         chk(8);
@@ -1164,15 +1220,26 @@ async function generatePDF(returnDoc=false, presetData=null) {
         doc.setTextColor(0,52,102);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
         doc.text(p.code,bCols[0],y+5.5);
         doc.setTextColor(30,40,50);doc.setFontSize(8);doc.setFont('helvetica','normal');
-        doc.text(p.bulkCPL?p.bulkCPL+'¢':'—',bCols[1],y+5.5);
-        doc.text(p.tankHireCPL?p.tankHireCPL+'¢':'—',bCols[2],y+5.5);
-        doc.text(p.freightCPL?p.freightCPL+'¢':'—',bCols[3],y+5.5);
-        doc.text(p.deliveredRequired?'Yes':'No',bCols[4],y+5.5);
-        if(p.deliveredRequired&&p.deliveredPrice){
-          doc.setTextColor(...GREEN);doc.setFont('helvetica','bold');
-          doc.text(p.deliveredPrice+'¢',bCols[5],y+5.5);
-        } else {doc.text('—',bCols[5],y+5.5);}
+        doc.text(p.bulkCPL?p.bulkCPL+' CPL':'—',bCols[1],y+5.5);
+        doc.text(p.tankHireCPL?p.tankHireCPL+' CPL':'—',bCols[2],y+5.5);
+        doc.text(p.freightCPL?p.freightCPL+' CPL':'—',bCols[3],y+5.5);
+        // Total CPL — bold navy
+        doc.setTextColor(0,52,102);doc.setFont('helvetica','bold');
+        doc.text(p.totalCPL&&p.totalCPL!=='—'?p.totalCPL+' CPL':'—',bCols[4],y+5.5);
+        doc.setTextColor(30,40,50);doc.setFont('helvetica','normal');
+        doc.text('—',bCols[5],y+5.5);
         y+=10;
+        // Delivered price customer row — distinct green treatment
+        if(p.deliveredRequired&&p.deliveredPrice){
+          chk(10);
+          doc.setFillColor(220,252,231); // green-light
+          doc.rect(margin,y,cW,10,'F');
+          doc.setDrawColor(22,163,74);doc.setLineWidth(0.5);
+          doc.rect(margin,y,cW,10,'S');
+          doc.setTextColor(22,163,74);doc.setFontSize(7);doc.setFont('helvetica','bold');
+          doc.text('⭐ DELIVERED PRICE CUSTOMER — Invoice price: '+p.deliveredPrice+' CPL',margin+4,y+6.5);
+          y+=12;
+        }
       });
       y+=4;
     }
@@ -1652,10 +1719,19 @@ function restoreFormFields(data) {
         setVal('bulk_cpl', p.bulkCPL);
         setVal('bulk_tankhire', p.tankHireCPL);
         setVal('bulk_freight', p.freightCPL);
+        calcDelivered(); // updates Total CPL display
+        // Show the delivered price question row (Line 2) when bulk is active
+        const qRow = document.getElementById('row_bulk_delivered_q');
+        if (qRow) qRow.style.display = '';
+        const priceRow = document.getElementById('row_bulk_delivered_price');
+        if (priceRow) priceRow.style.display = '';
         if (p.deliveredRequired) {
           const dChk = document.getElementById('bulk_delivered_chk');
-          if (dChk) { dChk.checked = true; dChk.dispatchEvent(new Event('change')); }
+          if (dChk) dChk.checked = true;
+          applyDeliveredStyle(true);
           setVal('bulk_delivered_price', p.deliveredPrice);
+        } else {
+          applyDeliveredStyle(false);
         }
       } else if (p.type === 'packaged') {
         const safeCode = p.code.replace(/-/g, '_');
