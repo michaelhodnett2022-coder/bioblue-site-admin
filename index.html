@@ -2022,24 +2022,6 @@ async function getOrCreateClientFolder(parentFolderId, folderName) {
   _folderIdCache[cacheKey] = created.id;
   return _folderIdCache[cacheKey];
 }
-  // Search for existing folder with this name
-  const searchRes = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=name='${folderName.replace(/'/g,"\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`,
-    { headers: { Authorization: `Bearer ${gdriveToken}` } }
-  );
-  const searchData = await searchRes.json();
-  if (searchData.files && searchData.files.length > 0) {
-    return searchData.files[0].id;
-  }
-  // Create new folder
-  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${gdriveToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentFolderId] })
-  });
-  const created = await createRes.json();
-  return created.id;
-}
 
 async function getClientFolderFromRecord(parentFolderId, clientId, fallbackName) {
   // Try to get folder ID from client records spreadsheet
