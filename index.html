@@ -1792,7 +1792,22 @@ async function uploadAndSend() {
   if(!d.adminContactPhone.trim()){showToast('⚠️ Admin / Invoicing Contact — Phone required');return;}
   if(!d.completedBy){showToast('⚠️ Please select who completed the form');return;}
 
-  const baseName=((d.generatedSiteName||d.siteName||d.customerName||'Draft').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_'))+'.Admin';
+  // Freight CPL is mandatory whenever Bulk CPL is populated
+  const _bulkRow = d.pricing?.find(p => p.type === 'bulk');
+  if (_bulkRow?.bulkCPL && !_bulkRow?.freightCPL) {
+    showToast('⚠️ Freight CPL is required when a Bulk CPL is entered');
+    // Scroll the pricing section into view
+    const pricingSection = document.getElementById('bulkTableWrap');
+    if (pricingSection) pricingSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Highlight the empty freight field
+    const freightEl = document.getElementById('bulk_freight');
+    if (freightEl) {
+      freightEl.style.border = '2px solid var(--red)';
+      freightEl.focus();
+      setTimeout(() => { freightEl.style.border = ''; }, 4000);
+    }
+    return;
+  }
   let pdfBlob = null;
 
   try {
@@ -1898,11 +1913,10 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 // INIT
 document.addEventListener('DOMContentLoaded',()=>{
   try{ buildPricingTable(); }catch(e){ console.warn('Page-load: buildPricingTable failed:',e.message); }
-  document.getElementById('formDate').value=new Date().toISOString().split('T')[0];
-  document.getElementById('completedBy').value='Michael Hodnett';
-  autoFill('Michael Hodnett');
+  try{ document.getElementById('formDate').value=new Date().toISOString().split('T')[0]; }catch(e){ console.warn('Page-load: formDate failed:',e.message); }
+  try{ document.getElementById('completedBy').value='Michael Hodnett'; autoFill('Michael Hodnett'); }catch(e){ console.warn('Page-load: autoFill failed:',e.message); }
   try{ loadClientFromURL(); }catch(e){ console.warn('Page-load: loadClientFromURL failed:',e.message); }
-  updateProgress();
+  try{ updateProgress(); }catch(e){ console.warn('Page-load: updateProgress failed:',e.message); }
 });
 
 // =====================================================================
