@@ -1469,7 +1469,8 @@ async function updateClientRecord(d, folderId, clientId) {
   const form=new FormData();
   form.append('metadata',new Blob([JSON.stringify({})],{type:'application/json'}));
   form.append('file',blob,CLIENT_RECORDS_NAME);
-  await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`,{method:'PATCH',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+  const _upRes = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`,{method:'PATCH',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
+  if (!_upRes.ok) throw new Error(`Client record save failed (${_upRes.status})`);
   return { newId, docCount };
 }
 
@@ -1748,28 +1749,30 @@ function restoreFormFields(data) {
 }
 
 async function saveAdminJSON(clientFolderId, baseName, d) {
-  try {
-    const jsonFolderId = await getOrCreateClientFolder(clientFolderId, ADMIN_JSON_SUBFOLDER);
-    const fileName = baseName + '_admin_data.json';
-    const blob = new Blob([JSON.stringify({ ...d, _savedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' });
-    if (!_adminJsonFileId) {
-      const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=name contains '_admin_data.json' and '${jsonFolderId}' in parents and trashed=false&fields=files(id)`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
-      const sd = await sr.json();
-      if (sd.files?.length) _adminJsonFileId = sd.files[0].id;
-    }
-    const fm = new FormData();
-    if (_adminJsonFileId) {
-      fm.append('metadata', new Blob([JSON.stringify({})], { type: 'application/json' }));
-      fm.append('file', blob, fileName);
-      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${_adminJsonFileId}?uploadType=multipart`, { method: 'PATCH', headers: { Authorization: `Bearer ${gdriveToken}` }, body: fm });
-    } else {
-      fm.append('metadata', new Blob([JSON.stringify({ name: fileName, parents: [jsonFolderId] })], { type: 'application/json' }));
-      fm.append('file', blob, fileName);
-      const cr = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { Authorization: `Bearer ${gdriveToken}` }, body: fm });
-      const created = await cr.json();
-      _adminJsonFileId = created.id;
-    }
-  } catch(e) { console.warn('saveAdminJSON failed (non-fatal):', e.message); }
+  const jsonFolderId = await getOrCreateClientFolder(clientFolderId, ADMIN_JSON_SUBFOLDER);
+  const fileName = baseName + '_admin_data.json';
+  const blob = new Blob([JSON.stringify({ ...d, _savedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+  if (!_adminJsonFileId) {
+    const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=name contains '_admin_data.json' and '${jsonFolderId}' in parents and trashed=false&fields=files(id)`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
+    if (!sr.ok) throw new Error(`JSON lookup failed (${sr.status})`);
+    const sd = await sr.json();
+    if (sd.files?.length) _adminJsonFileId = sd.files[0].id;
+  }
+  const fm = new FormData();
+  if (_adminJsonFileId) {
+    fm.append('metadata', new Blob([JSON.stringify({})], { type: 'application/json' }));
+    fm.append('file', blob, fileName);
+    const pr = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${_adminJsonFileId}?uploadType=multipart`, { method: 'PATCH', headers: { Authorization: `Bearer ${gdriveToken}` }, body: fm });
+    if (!pr.ok) throw new Error(`JSON update failed (${pr.status})`);
+  } else {
+    fm.append('metadata', new Blob([JSON.stringify({ name: fileName, parents: [jsonFolderId] })], { type: 'application/json' }));
+    fm.append('file', blob, fileName);
+    const cr = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { Authorization: `Bearer ${gdriveToken}` }, body: fm });
+    if (!cr.ok) throw new Error(`JSON creation failed (${cr.status})`);
+    const created = await cr.json();
+    if (!created.id) throw new Error('JSON creation returned no ID');
+    _adminJsonFileId = created.id;
+  }
 }
 
 async function uploadAndSend() {
@@ -1792,22 +1795,7 @@ async function uploadAndSend() {
   if(!d.adminContactPhone.trim()){showToast('⚠️ Admin / Invoicing Contact — Phone required');return;}
   if(!d.completedBy){showToast('⚠️ Please select who completed the form');return;}
 
-  // Freight CPL is mandatory whenever Bulk CPL is populated
-  const _bulkRow = d.pricing?.find(p => p.type === 'bulk');
-  if (_bulkRow?.bulkCPL && !_bulkRow?.freightCPL) {
-    showToast('⚠️ Freight CPL is required when a Bulk CPL is entered');
-    // Scroll the pricing section into view
-    const pricingSection = document.getElementById('bulkTableWrap');
-    if (pricingSection) pricingSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    // Highlight the empty freight field
-    const freightEl = document.getElementById('bulk_freight');
-    if (freightEl) {
-      freightEl.style.border = '2px solid var(--red)';
-      freightEl.focus();
-      setTimeout(() => { freightEl.style.border = ''; }, 4000);
-    }
-    return;
-  }
+  const baseName=((d.generatedSiteName||d.siteName||d.customerName||'Draft').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_'))+'.Admin';
   let pdfBlob = null;
 
   try {
@@ -1841,17 +1829,25 @@ async function uploadAndSend() {
       form.append('file',pdfBlob,baseName+'.pdf');
       up=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',{method:'POST',headers:{Authorization:`Bearer ${gdriveToken}`},body:form});
     }
+    if (!up.ok) throw new Error(`PDF upload failed (${up.status}) — Drive session may have expired, try reloading`);
     const uploaded=await up.json();
+    if (!uploaded.id) throw new Error('PDF upload returned no file ID');
 
     // Save JSON backup for future recall + delete the in-progress draft
-    await saveAdminJSON(_clientFolderId, baseName, d);
-    if (_draftFileId) {
-      fetch(`https://www.googleapis.com/drive/v3/files/${_draftFileId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${gdriveToken}` } })
-        .catch(e => console.warn('Draft cleanup failed (non-fatal):', e.message));
-      _draftFileId = null;
+    let _jsonWarning = '';
+    try {
+      await saveAdminJSON(_clientFolderId, baseName, d);
+      if (_draftFileId) {
+        fetch(`https://www.googleapis.com/drive/v3/files/${_draftFileId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${gdriveToken}` } })
+          .catch(e => console.warn('Draft cleanup failed (non-fatal):', e.message));
+        _draftFileId = null;
+      }
+    } catch(jsonErr) {
+      console.error('Admin JSON save failed:', jsonErr);
+      _jsonWarning = `\n\n⚠️ JSON backup failed: ${jsonErr.message}\n(PDF is safe on Drive — but Recall/Load Draft won't find this submission until the JSON saves successfully)`;
     }
 
-    document.getElementById('modalMsg').textContent=`✅ Site Admin Form submitted!\n\n🆔 Document Ref: ${d.docRef}\n☁️ PDF ${existingFileId?'updated':'uploaded'} to Google Drive\n📊 Client record updated — Site Admin ✓\n${uploaded.webViewLink?'\nDrive link:\n'+uploaded.webViewLink:''}`;
+    document.getElementById('modalMsg').textContent=`✅ Site Admin Form submitted!\n\n🆔 Document Ref: ${d.docRef}\n☁️ PDF ${existingFileId?'updated':'uploaded'} to Google Drive\n📊 Client record updated — Site Admin ✓\n${uploaded.webViewLink?'\nDrive link:\n'+uploaded.webViewLink:''}${_jsonWarning}`;
     const _aid = new URLSearchParams(window.location.search).get('client');
     redirectToFieldTools(_aid||'');
     document.getElementById('modal').classList.add('active');
@@ -1913,10 +1909,11 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 // INIT
 document.addEventListener('DOMContentLoaded',()=>{
   try{ buildPricingTable(); }catch(e){ console.warn('Page-load: buildPricingTable failed:',e.message); }
-  try{ document.getElementById('formDate').value=new Date().toISOString().split('T')[0]; }catch(e){ console.warn('Page-load: formDate failed:',e.message); }
-  try{ document.getElementById('completedBy').value='Michael Hodnett'; autoFill('Michael Hodnett'); }catch(e){ console.warn('Page-load: autoFill failed:',e.message); }
+  document.getElementById('formDate').value=new Date().toISOString().split('T')[0];
+  document.getElementById('completedBy').value='Michael Hodnett';
+  autoFill('Michael Hodnett');
   try{ loadClientFromURL(); }catch(e){ console.warn('Page-load: loadClientFromURL failed:',e.message); }
-  try{ updateProgress(); }catch(e){ console.warn('Page-load: updateProgress failed:',e.message); }
+  updateProgress();
 });
 
 // =====================================================================
@@ -2098,6 +2095,7 @@ async function getOrCreateClientFolder(parentFolderId, folderName) {
     `https://www.googleapis.com/drive/v3/files?q=name='${folderName.replace(/'/g,"\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`,
     { headers: { Authorization: `Bearer ${gdriveToken}` } }
   );
+  if (!searchRes.ok) throw new Error(`Folder search failed (${searchRes.status}) — Drive session may have expired, try reloading`);
   const searchData = await searchRes.json();
   if (searchData.files && searchData.files.length > 0) {
     _folderIdCache[cacheKey] = searchData.files[0].id;
@@ -2108,7 +2106,9 @@ async function getOrCreateClientFolder(parentFolderId, folderName) {
     headers: { Authorization: `Bearer ${gdriveToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentFolderId] })
   });
+  if (!createRes.ok) throw new Error(`Folder creation failed (${createRes.status}) — Drive session may have expired, try reloading`);
   const created = await createRes.json();
+  if (!created.id) throw new Error('Folder creation returned no ID');
   _folderIdCache[cacheKey] = created.id;
   return _folderIdCache[cacheKey];
 }
