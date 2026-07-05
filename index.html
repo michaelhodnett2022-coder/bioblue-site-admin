@@ -2213,17 +2213,17 @@ async function saveClientFolderIdToRecord(parentFolderId, clientId, folderId) {
 }
 
 // =====================================================================
-// ADMIN SHEET — find or create AA_App_Admin folder + Client Records sheet
+// ADMIN SHEET — find or create ADMIN DATA - DO NOT REMOVE folder + Client Records sheet
 // (app-owned under drive.file scope, avoids manual-upload visibility issue)
 // =====================================================================
 let _adminSheetIdCache = null;
 async function getAdminSheetId(rootFolderId) {
   if (_adminSheetIdCache) return _adminSheetIdCache;
 
-  // 1. Find or create AA_App_Admin folder
+  // 1. Find or create ADMIN DATA - DO NOT REMOVE folder
   let adminFolderId = null;
   const afr = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=name='AA_App_Admin' and '${rootFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,
+    `https://www.googleapis.com/drive/v3/files?q=name='ADMIN DATA - DO NOT REMOVE' and '${rootFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,
     { headers: { Authorization: `Bearer ${gdriveToken}` } }
   );
   const afd = await afr.json();
@@ -2233,12 +2233,12 @@ async function getAdminSheetId(rootFolderId) {
     const cr = await fetch('https://www.googleapis.com/drive/v3/files', {
       method: 'POST',
       headers: { Authorization: `Bearer ${gdriveToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'AA_App_Admin', mimeType: 'application/vnd.google-apps.folder', parents: [rootFolderId] })
+      body: JSON.stringify({ name: 'ADMIN DATA - DO NOT REMOVE', mimeType: 'application/vnd.google-apps.folder', parents: [rootFolderId] })
     });
     adminFolderId = (await cr.json()).id;
   }
 
-  // 2. Find the sheet inside AA_App_Admin
+  // 2. Find the sheet inside ADMIN DATA - DO NOT REMOVE
   const sr = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=name='BioBlue_Client_Records.xlsx' and '${adminFolderId}' in parents and trashed=false&fields=files(id)`,
     { headers: { Authorization: `Bearer ${gdriveToken}` } }
