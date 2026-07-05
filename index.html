@@ -2091,26 +2091,36 @@ const _folderIdCache = {};
 async function getOrCreateClientFolder(parentFolderId, folderName) {
   const cacheKey = parentFolderId + '::' + folderName;
   if (_folderIdCache[cacheKey]) return _folderIdCache[cacheKey];
-  const searchRes = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=name='${folderName.replace(/'/g,"\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`,
-    { headers: { Authorization: `Bearer ${gdriveToken}` } }
-  );
-  if (!searchRes.ok) throw new Error(`Folder search failed (${searchRes.status}) — Drive session may have expired, try reloading`);
-  const searchData = await searchRes.json();
-  if (searchData.files && searchData.files.length > 0) {
-    _folderIdCache[cacheKey] = searchData.files[0].id;
-    return _folderIdCache[cacheKey];
+  // Cache the in-flight promise itself (not just the eventual result) so that
+  // two concurrent calls for the same folder (e.g. checkForDraft + checkForExistingSubmission
+  // firing together on page load, neither awaited) share one lookup/create instead of
+  // each independently finding "nothing exists yet" and both creating a duplicate folder.
+  _folderIdCache[cacheKey] = (async () => {
+    const searchRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${folderName.replace(/'/g,"\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`,
+      { headers: { Authorization: `Bearer ${gdriveToken}` } }
+    );
+    if (!searchRes.ok) throw new Error(`Folder search failed (${searchRes.status}) — Drive session may have expired, try reloading`);
+    const searchData = await searchRes.json();
+    if (searchData.files && searchData.files.length > 0) {
+      return searchData.files[0].id;
+    }
+    const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${gdriveToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentFolderId] })
+    });
+    if (!createRes.ok) throw new Error(`Folder creation failed (${createRes.status}) — Drive session may have expired, try reloading`);
+    const created = await createRes.json();
+    if (!created.id) throw new Error('Folder creation returned no ID');
+    return created.id;
+  })();
+  try {
+    return await _folderIdCache[cacheKey];
+  } catch (e) {
+    delete _folderIdCache[cacheKey]; // don't cache a failure — allow retry next call
+    throw e;
   }
-  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${gdriveToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [parentFolderId] })
-  });
-  if (!createRes.ok) throw new Error(`Folder creation failed (${createRes.status}) — Drive session may have expired, try reloading`);
-  const created = await createRes.json();
-  if (!created.id) throw new Error('Folder creation returned no ID');
-  _folderIdCache[cacheKey] = created.id;
-  return _folderIdCache[cacheKey];
 }
 
 async function getClientFolderFromRecord(parentFolderId, clientId, fallbackName) {
