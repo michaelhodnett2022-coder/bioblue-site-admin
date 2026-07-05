@@ -1486,6 +1486,15 @@ let _draftFileId = null;
 let _adminJsonFileId = null;
 const ADMIN_JSON_SUBFOLDER = 'Admin Data';
 
+// Consolidates JSON subfolders under one "Data" parent for tidiness (Fresh
+// Clients Only — existing clients keep using their current flat structure,
+// since getOrCreateClientFolder will simply keep finding their existing
+// subfolder at the old location; only brand-new subfolders go under Data/).
+async function getAdminJsonFolder(clientFolderId) {
+  const dataFolderId = await getOrCreateClientFolder(clientFolderId, 'Data');
+  return await getOrCreateClientFolder(dataFolderId, ADMIN_JSON_SUBFOLDER);
+}
+
 function hideDraftBanner() { const b = document.getElementById('draftBanner'); if (b) b.style.display = 'none'; }
 function hideExistingBanner() { const b = document.getElementById('existingSubmissionBanner'); if (b) b.style.display = 'none'; }
 
@@ -1519,7 +1528,7 @@ async function _getAdminJsonFolder(clientId) {
   const d = collectData();
   const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.customerName || 'Unknown Client');
   if (!clientFolderId) throw new Error('Could not find client folder');
-  return { rootFolderId, jsonFolderId: await getOrCreateClientFolder(clientFolderId, ADMIN_JSON_SUBFOLDER) };
+  return { rootFolderId, jsonFolderId: await getAdminJsonFolder(clientFolderId) };
 }
 
 async function saveDraft() {
@@ -1554,7 +1563,7 @@ async function checkForDraft(rootFolderId, clientId) {
     const d = collectData();
     const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.customerName || '');
     if (!clientFolderId) return;
-    const jsonFolderId = await getOrCreateClientFolder(clientFolderId, ADMIN_JSON_SUBFOLDER);
+    const jsonFolderId = await getAdminJsonFolder(clientFolderId);
     const fileName = `BB_Admin_${clientId}.json`;
     const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${fileName}' and '${jsonFolderId}' in parents and trashed=false&fields=files(id,modifiedTime)`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
     const sd = await sr.json();
@@ -1573,7 +1582,7 @@ async function checkForExistingSubmission(rootFolderId, clientId) {
     const d = collectData();
     const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.customerName || '');
     if (!clientFolderId) return;
-    const jsonFolderId = await getOrCreateClientFolder(clientFolderId, ADMIN_JSON_SUBFOLDER);
+    const jsonFolderId = await getAdminJsonFolder(clientFolderId);
     const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=name contains '_admin_data.json' and '${jsonFolderId}' in parents and trashed=false&fields=files(id,modifiedTime)`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
     const sd = await sr.json();
     if (!sd.files?.length) return;
@@ -1749,7 +1758,7 @@ function restoreFormFields(data) {
 }
 
 async function saveAdminJSON(clientFolderId, baseName, d) {
-  const jsonFolderId = await getOrCreateClientFolder(clientFolderId, ADMIN_JSON_SUBFOLDER);
+  const jsonFolderId = await getAdminJsonFolder(clientFolderId);
   const fileName = baseName + '_admin_data.json';
   const blob = new Blob([JSON.stringify({ ...d, _savedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' });
   if (!_adminJsonFileId) {
