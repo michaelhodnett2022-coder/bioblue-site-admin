@@ -1804,6 +1804,17 @@ async function uploadAndSend() {
   if(!d.adminContactPhone.trim()){showToast('⚠️ Admin / Invoicing Contact — Phone required');return;}
   if(!d.completedBy){showToast('⚠️ Please select who completed the form');return;}
 
+  // Bulk CPL and Freight CPL must always exist together — one without the
+  // other produces an incomplete/incorrect delivered price on the invoice.
+  {
+    const _bulkCpl = document.getElementById('bulk_cpl')?.value?.trim() || '';
+    const _bulkFreight = document.getElementById('bulk_freight')?.value?.trim() || '';
+    if ((_bulkCpl && !_bulkFreight) || (!_bulkCpl && _bulkFreight)) {
+      showToast('⚠️ Bulk CPL and Freight CPL must both be filled in, or both left blank');
+      return;
+    }
+  }
+
   const baseName=((d.generatedSiteName||d.siteName||d.customerName||'Draft').replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'_'))+'.Admin';
   let pdfBlob = null;
 
