@@ -2119,7 +2119,7 @@ async function getOrCreateClientFolder(parentFolderId, folderName) {
   // each independently finding "nothing exists yet" and both creating a duplicate folder.
   _folderIdCache[cacheKey] = (async () => {
     const searchRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='${folderName.replace(/'/g,"\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`,
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(`name='${folderName.replace(/'/g,"\\'")}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`)}&fields=files(id,name)`,
       { headers: { Authorization: `Bearer ${gdriveToken}` } }
     );
     if (!searchRes.ok) throw new Error(`Folder search failed (${searchRes.status}) — Drive session may have expired, try reloading`);
