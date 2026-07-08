@@ -326,7 +326,7 @@
 
       <div class="contact-card">
         <div class="contact-card-hdr">
-          <span>Business / Site Contact</span>
+          <span>Site Contact</span>
           <span class="req-badge">Required</span>
         </div>
         <div class="contact-card-body">
@@ -522,6 +522,7 @@
             <option>Derek Page</option>
             <option>Angelo Sayas</option>
             <option>Kevin Goverd</option>
+            <option>Brad Ryan</option>
           </select>
         </div>
         <div class="field-group">
@@ -616,6 +617,7 @@ const BDM_MAP = {
   'Derek Page':      { email:'derek.page@bioblue.com.au' },
   'Angelo Sayas':    { email:'angelo.sayas@bioblue.com.au' },
   'Kevin Goverd':    { email:'kevin.goverd@bioblue.com.au' },
+  'Brad Ryan':       { email:'brad@bioblue.com.au' },
 };
 
 // =====================================================================
@@ -1170,7 +1172,7 @@ async function generatePDF(returnDoc=false, presetData=null) {
 
   // S2 Contacts
   secHdr('2. CONTACTS');
-  twoRow('Business / Site Contact',d.bizContactName||'\u2014','Title / Role',d.bizContactRole||'\u2014');
+  twoRow('Site Contact',d.bizContactName||'\u2014','Title / Role',d.bizContactRole||'\u2014');
   if(d.bizContactPhone||d.bizContactEmail) twoRow('Phone',d.bizContactPhone||'\u2014','Email',d.bizContactEmail||'\u2014');
   twoRow('Admin / Invoicing Contact',d.adminContactName||'\u2014','Title / Role',d.adminContactRole||'\u2014');
   if(d.adminContactPhone||d.adminContactEmail) twoRow('Phone',d.adminContactPhone||'\u2014','Email',d.adminContactEmail||'\u2014');
@@ -1526,7 +1528,7 @@ async function _getAdminJsonFolder(clientId) {
   if (!rootData.files?.length) throw new Error('Could not find BioBlue Audits folder');
   const rootFolderId = rootData.files[0].id;
   const d = collectData();
-  const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.customerName || 'Unknown Client');
+  const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.generatedSiteName || d.siteName || d.customerName || 'Unknown Client');
   if (!clientFolderId) throw new Error('Could not find client folder');
   return { rootFolderId, jsonFolderId: await getAdminJsonFolder(clientFolderId) };
 }
@@ -1561,7 +1563,7 @@ async function checkForDraft(rootFolderId, clientId) {
   if (!clientId) return;
   try {
     const d = collectData();
-    const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.customerName || '');
+    const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.generatedSiteName || d.siteName || d.customerName || '');
     if (!clientFolderId) return;
     const jsonFolderId = await getAdminJsonFolder(clientFolderId);
     const fileName = `BB_Admin_${clientId}.json`;
@@ -1580,7 +1582,7 @@ async function checkForExistingSubmission(rootFolderId, clientId) {
   if (!clientId || _adminJsonFileId) return;
   try {
     const d = collectData();
-    const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.customerName || '');
+    const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.generatedSiteName || d.siteName || d.customerName || '');
     if (!clientFolderId) return;
     const jsonFolderId = await getAdminJsonFolder(clientFolderId);
     const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=name contains '_admin_data.json' and '${jsonFolderId}' in parents and trashed=false&fields=files(id,modifiedTime)`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
@@ -1824,7 +1826,7 @@ async function uploadAndSend() {
     const folderId=await getFolderId();
     // Find client folder from record
     const _clientId = new URLSearchParams(window.location.search).get('client');
-    const _folderName = d.customerName || d.siteName || 'Unknown Client';
+    const _folderName = d.generatedSiteName || d.siteName || d.customerName || 'Unknown Client';
     showToast('📁 Finding client folder...');
     const _clientFolderId = await getClientFolderFromRecord(folderId, _clientId, _folderName);
 
