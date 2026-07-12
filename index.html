@@ -162,7 +162,6 @@
   <div class="header-group">
     <div class="header-group-label">This Admin Form's Data</div>
     <button class="btn-header-full btn-header-secondary" onclick="confirmClear()">🗑️ Clear Form</button>
-    <button class="btn-header-full btn-header-secondary" onclick="recallPastAdmin()">🗂️ Recall Past Admin Form</button>
     <button class="btn-header-full btn-header-secondary" onclick="saveDraft()">💾 Save Draft</button>
   </div>
 
@@ -243,10 +242,10 @@
     <span style="font-size:20px;">ℹ️</span>
     <div style="flex:1;min-width:180px;">
       <div style="font-weight:700;font-size:13.5px;color:#003466;">An admin form already exists for this client</div>
-      <div style="font-size:12px;color:#0055a5;">Submitted <span data-existing-date>—</span>. Starting a new one here will replace it — use Recall Past Admin Form instead if you just need to update it.</div>
+      <div style="font-size:12px;color:#0055a5;">Submitted <span data-existing-date>—</span>. Starting a new one here will replace it.</div>
     </div>
     <div style="display:flex;gap:8px;">
-      <button onclick="recallPastAdmin();hideExistingBanner();" style="padding:8px 18px;border-radius:8px;background:#1A9FD4;border:none;font-weight:700;font-size:13px;cursor:pointer;color:white;">🗂️ Recall Past Admin Form</button>
+      <button onclick="loadExistingSubmission()" style="padding:8px 18px;border-radius:8px;background:#1A9FD4;border:none;font-weight:700;font-size:13px;cursor:pointer;color:white;">📂 Load & Edit This Admin Form</button>
       <button onclick="hideExistingBanner();" style="padding:8px 14px;border-radius:8px;background:white;border:2px solid #ccc;font-weight:600;font-size:13px;cursor:pointer;color:#666;">Dismiss</button>
     </div>
   </div>
@@ -1486,6 +1485,8 @@ async function downloadPDF() {
 // =====================================================================
 let _draftFileId = null;
 let _adminJsonFileId = null;
+let _existingSubmissionFileId = null;
+let _existingSubmissionFileName = null;
 const ADMIN_JSON_SUBFOLDER = 'Admin Data';
 
 // Consolidates JSON subfolders under one "Data" parent for tidiness (Fresh
@@ -1585,14 +1586,28 @@ async function checkForExistingSubmission(rootFolderId, clientId) {
     const clientFolderId = await getClientFolderFromRecord(rootFolderId, clientId, d.generatedSiteName || d.siteName || d.customerName || '');
     if (!clientFolderId) return;
     const jsonFolderId = await getAdminJsonFolder(clientFolderId);
-    const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=name contains '_admin_data.json' and '${jsonFolderId}' in parents and trashed=false&fields=files(id,modifiedTime)`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
+    const sr = await fetch(`https://www.googleapis.com/drive/v3/files?q=name contains '_admin_data.json' and '${jsonFolderId}' in parents and trashed=false&fields=files(id,name,modifiedTime)`, { headers: { Authorization: `Bearer ${gdriveToken}` } });
     const sd = await sr.json();
     if (!sd.files?.length) return;
+    // Keep the file reference this lookup already resolved — correctly
+    // scoped to THIS client, since it came from getClientFolderFromRecord
+    // above. Reusing it directly means there's no separate global search
+    // that could ever point at a different client than the one loaded.
+    _existingSubmissionFileId   = sd.files[0].id;
+    _existingSubmissionFileName = sd.files[0].name;
     const dateEl = document.querySelector('[data-existing-date]');
     if (dateEl) dateEl.textContent = new Date(sd.files[0].modifiedTime).toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'numeric' });
     const banner = document.getElementById('existingSubmissionBanner');
     if (banner) banner.style.display = 'flex';
   } catch(e) { console.warn('checkForExistingSubmission failed (non-fatal):', e.message); }
+}
+
+// Loads the already-resolved existing submission directly — reuses the file
+// ID checkForExistingSubmission found during the correctly-scoped Load
+// Client lookup, rather than running a second, separate, unscoped search.
+function loadExistingSubmission() {
+  if (!_existingSubmissionFileId) { showToast('⚠️ No existing admin form found to load'); return; }
+  selectAdminFile(_existingSubmissionFileId, _existingSubmissionFileName);
 }
 
 async function loadDraft() {
@@ -1613,66 +1628,7 @@ async function loadDraft() {
   } catch(e) { console.warn('loadDraft failed:', e.message); showToast('⚠️ Could not restore draft: ' + e.message); }
 }
 
-async function recallPastAdmin() {
-  showToast('🔍 Searching for saved admin forms...');
-  try {
-    await getDriveToken();
-    const sr = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name contains '_admin_data.json' and trashed=false&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc&pageSize=50`,
-      { headers: { Authorization: `Bearer ${gdriveToken}` } });
-    const sd = await sr.json();
-    const files = sd.files || [];
-    if (!files.length) { showToast('⚠️ No saved admin forms found'); return; }
-    showAdminPicker(files);
-  } catch(e) { console.warn('recallPastAdmin failed:', e.message); showToast('❌ Could not search: ' + e.message); }
-}
-
-let _adminPickerFiles = [];
-function showAdminPicker(files) {
-  document.getElementById('adminPickerModal')?.remove();
-  _adminPickerFiles = files.map(f => ({ ...f, displayName: f.name.replace(/_admin_data\.json$/i,'').replace(/_/g,' ') }));
-  const modal = document.createElement('div');
-  modal.id = 'adminPickerModal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;';
-  const fmt = iso => iso ? new Date(iso).toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'numeric' }) + ' ' + new Date(iso).toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit' }) : '';
-  const rows = list => list.map(f =>
-    `<div onclick="selectAdminFile('${f.id}','${f.name}')" style="padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08);transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
-      <div style="font-size:13px;font-weight:600;color:white;">${f.displayName}</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:2px;">Last modified: ${fmt(f.modifiedTime)}</div>
-    </div>`).join('') || '<div style="padding:20px;text-align:center;color:rgba(255,255,255,0.5);font-size:13px;">No matches</div>';
-  modal.innerHTML = `<div style="background:#003466;border-radius:12px;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.4);overflow:hidden;">
-    <div style="padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;">
-      <div><div style="font-size:15px;font-weight:700;color:white;">📂 Recall Past Admin Form</div>
-      <div style="font-size:11px;opacity:0.7;color:white;margin-top:2px;">${files.length} saved form${files.length!==1?'s':''} found</div></div>
-      <button onclick="document.getElementById('adminPickerModal').remove()" style="background:rgba(255,255,255,0.15);border:none;color:white;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;">✕</button>
-    </div>
-    <div style="padding:14px 20px;">
-      <input type="text" placeholder="Search..." autocomplete="off" oninput="filterAdminPicker(this.value)"
-        style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:white;font-family:'DM Sans',sans-serif;font-size:13px;box-sizing:border-box;">
-    </div>
-    <div id="adminPickerResults" style="overflow-y:auto;flex:1;border-top:1px solid rgba(255,255,255,0.1);">${rows(_adminPickerFiles)}</div>
-    <div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.1);">
-      <p style="font-size:11px;color:rgba(255,255,255,0.5);margin:0;">Select a form to restore all fields.</p>
-    </div>
-  </div>`;
-  document.body.appendChild(modal);
-}
-
-function filterAdminPicker(query) {
-  const results = document.getElementById('adminPickerResults');
-  if (!results) return;
-  const q = query.toLowerCase().trim();
-  const matches = q ? _adminPickerFiles.filter(f => f.displayName.toLowerCase().includes(q)) : _adminPickerFiles;
-  const fmt = iso => iso ? new Date(iso).toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'numeric' }) + ' ' + new Date(iso).toLocaleTimeString('en-AU', { hour:'2-digit', minute:'2-digit' }) : '';
-  results.innerHTML = matches.map(f =>
-    `<div onclick="selectAdminFile('${f.id}','${f.name}')" style="padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08);transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
-      <div style="font-size:13px;font-weight:600;color:white;">${f.displayName}</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:2px;">Last modified: ${fmt(f.modifiedTime)}</div>
-    </div>`).join('') || '<div style="padding:20px;text-align:center;color:rgba(255,255,255,0.5);font-size:13px;">No matches</div>';
-}
-
 async function selectAdminFile(fileId, fileName) {
-  document.getElementById('adminPickerModal')?.remove();
   hideExistingBanner();
   showToast('⏳ Loading admin form...');
   try {
