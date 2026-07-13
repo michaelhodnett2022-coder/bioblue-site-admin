@@ -421,6 +421,36 @@
         </div>
       </div>
 
+      <div class="yn-item" id="yn-vendorManaged">
+        <div class="yn-question">Does this customer want BioBlue to manage their delivery schedule for them? <span style="font-size:11px;color:var(--gray-mid);">(Vendor Managed Site) — Required</span></div>
+        <div class="yn-controls">
+          <button class="yn-btn" onclick="setYN('vendorManaged','Y')">Y</button>
+          <button class="yn-btn" onclick="setYN('vendorManaged','N')">N</button>
+        </div>
+      </div>
+
+      <div class="field-row full" style="margin-top:16px;">
+        <div class="field-group">
+          <label class="field-label required">Anticipated Delivery Frequency</label>
+          <select id="deliveryFrequency" onchange="toggleDeliveryFreqOther(this.value);updateProgress()">
+            <option value="">— Select —</option>
+            <option value="Weekly">Weekly</option>
+            <option value="Fortnightly">Fortnightly</option>
+            <option value="Monthly">Monthly</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div id="deliveryFreqOtherField" style="display:none;">
+        <div class="inline-field">
+          <div class="inline-arrow">↳</div>
+          <div class="inline-content">
+            <label class="field-label">Please describe</label>
+            <input type="text" id="deliveryFrequencyOther" placeholder="e.g. Ad-hoc, as required">
+          </div>
+        </div>
+      </div>
+
       <div class="field-row full" style="margin-top:16px;margin-bottom:16px;">
         <div class="field-group">
           <label class="field-label">Additional Invoicing Emails <span style="font-size:10px;font-weight:400;color:var(--gray-mid);">(aside from credit application email)</span></label>
@@ -956,6 +986,17 @@ function setYN(id, val) {
   }
 }
 
+// Shows/hides the free-text description field when "Other" is selected for
+// delivery frequency — matches the same show/hide convention as poEmailField.
+function toggleDeliveryFreqOther(val) {
+  const el = document.getElementById('deliveryFreqOtherField');
+  if (el) el.style.display = val === 'Other' ? 'block' : 'none';
+  if (val !== 'Other') {
+    const o = document.getElementById('deliveryFrequencyOther');
+    if (o) o.value = '';
+  }
+}
+
 // =====================================================================
 // ADDRESS AUTOCOMPLETE
 // =====================================================================
@@ -1084,6 +1125,9 @@ function collectData() {
     invoiceEmails: g('invoiceEmails'),
     poRequired:    ynValues['po']||'',
     poEmail:       g('poEmail'),
+    vendorManaged: ynValues['vendorManaged']||'',
+    deliveryFrequency: g('deliveryFrequency'),
+    deliveryFrequencyOther: g('deliveryFrequencyOther'),
     podEmail:      g('podEmail'),
     podEmail2:     g('podEmail2'),
     podEmail3:     g('podEmail3'),
@@ -1181,6 +1225,7 @@ async function generatePDF(returnDoc=false, presetData=null) {
   twoRow('Distributor / Reseller Site',d.isDistributor==='Y'?'Yes':d.isDistributor==='N'?'No':'\u2014','','');
   fRow('Additional Invoicing Emails',d.invoiceEmails||'\u2014');
   twoRow('Purchase Orders Required',d.poRequired==='Y'?'Yes':d.poRequired==='N'?'No':'\u2014','PO Delivery Email',d.poEmail||'\u2014');
+  twoRow('Vendor Managed Site',d.vendorManaged==='Y'?'Yes':d.vendorManaged==='N'?'No':'\u2014','Delivery Frequency',d.deliveryFrequency==='Other'?('Other: '+(d.deliveryFrequencyOther||'\u2014')):(d.deliveryFrequency||'\u2014'));
   fRow('Proof of Delivery (POD) email',d.podEmail||'\u2014');
   if (d.podEmail2) fRow('Additional POD Email',d.podEmail2);
   if (d.podEmail3) fRow('Additional POD Email',d.podEmail3);
@@ -1438,6 +1483,9 @@ async function updateClientRecord(d, folderId, clientId) {
   set('Additional Invoicing Emails', d.invoiceEmails);
   set('PO Required', d.poRequired);
   set('PO Delivery Email', d.poEmail);
+  set('Vendor Managed Site', d.vendorManaged);
+  set('Delivery Frequency', d.deliveryFrequency);
+  set('Delivery Frequency Other', d.deliveryFrequencyOther);
   set('BDM Email', d.bdmEmail);
   set('Active Products', activeProducts);
   if(adminCol>-1) rows[rowIdx][adminCol]='✓';
@@ -1676,6 +1724,10 @@ function restoreFormFields(data) {
   // Y/N values (isDistributor, poRequired)
   if (data.isDistributor) try { setYN('distrib', data.isDistributor); } catch(e) {}
   if (data.poRequired) try { setYN('po', data.poRequired); } catch(e) {}
+  if (data.vendorManaged) try { setYN('vendorManaged', data.vendorManaged); } catch(e) {}
+  setVal('deliveryFrequency', data.deliveryFrequency);
+  setVal('deliveryFrequencyOther', data.deliveryFrequencyOther);
+  if (data.deliveryFrequency === 'Other') { const el = document.getElementById('deliveryFreqOtherField'); if (el) el.style.display = 'block'; }
 
   // Pricing table — rebuild from saved data then populate
   try { buildPricingTable(); } catch(e) { console.warn('restoreFormFields: buildPricingTable failed:', e.message); }
@@ -1761,6 +1813,9 @@ async function uploadAndSend() {
   if(!d.adminContactEmail.trim()){showToast('⚠️ Admin / Invoicing Contact — Email required');return;}
   if(!d.adminContactPhone.trim()){showToast('⚠️ Admin / Invoicing Contact — Phone required');return;}
   if(!d.completedBy){showToast('⚠️ Please select who completed the form');return;}
+  if(!d.vendorManaged){showToast('⚠️ Please answer: Does this customer want BioBlue to manage their delivery schedule? (Vendor Managed Site)');return;}
+  if(!d.deliveryFrequency){showToast('⚠️ Please select the anticipated delivery frequency');return;}
+  if(d.deliveryFrequency==='Other' && !d.deliveryFrequencyOther.trim()){showToast('⚠️ Please describe the delivery frequency (Other selected)');return;}
 
   // Bulk CPL and Freight CPL must always exist together — one without the
   // other produces an incomplete/incorrect delivered price on the invoice.
@@ -1860,8 +1915,11 @@ function clearAll() {
   document.getElementById('state').selectedIndex=0;
   document.getElementById('completedBy').selectedIndex=0;
   document.getElementById('poEmailField').style.display='none';
+  document.getElementById('deliveryFreqOtherField').style.display='none';
+  document.getElementById('deliveryFrequency').selectedIndex=0;
+  document.getElementById('deliveryFrequencyOther').value='';
   for(const k in ynValues) delete ynValues[k];
-  ['yn-distrib','yn-po'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.remove('yes','no');el.querySelectorAll('.yn-btn').forEach(b=>b.classList.remove('active-y','active-n'));}});
+  ['yn-distrib','yn-po','yn-vendorManaged'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.remove('yes','no');el.querySelectorAll('.yn-btn').forEach(b=>b.classList.remove('active-y','active-n'));}});
   // Clear bulk
   ['bulk_cpl','bulk_tankhire','bulk_freight','bulk_delivered_price'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const bulkChk=document.getElementById('chk_bulk');if(bulkChk)bulkChk.checked=false;
