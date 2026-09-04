@@ -1798,24 +1798,24 @@ async function uploadAndSend() {
   const _clientIdCheck = new URLSearchParams(window.location.search).get('client');
   if (!_clientIdCheck) {
     showToast('⚠️ No client loaded — return to Field Tools and select a client first');
-    return;
+    return { success:false, error:'No client loaded' };
   }
   const d=collectData();
-  if(!d.customerName.trim()){showToast('⚠️ Customer name required');return;}
-  if(!d.formDate){showToast('⚠️ Date required');return;}
-  if(!d.siteName.trim()){showToast('⚠️ Site name required');return;}
-  if(!d.bizContactName.trim()){showToast('⚠️ Business Contact — Full Name required');return;}
-  if(!d.bizContactRole.trim()){showToast('⚠️ Business Contact — Title / Role required');return;}
-  if(!d.bizContactEmail.trim()){showToast('⚠️ Business Contact — Email required');return;}
-  if(!d.bizContactPhone.trim()){showToast('⚠️ Business Contact — Phone required');return;}
-  if(!d.adminContactName.trim()){showToast('⚠️ Admin / Invoicing Contact — Full Name required');return;}
-  if(!d.adminContactRole.trim()){showToast('⚠️ Admin / Invoicing Contact — Title / Role required');return;}
-  if(!d.adminContactEmail.trim()){showToast('⚠️ Admin / Invoicing Contact — Email required');return;}
-  if(!d.adminContactPhone.trim()){showToast('⚠️ Admin / Invoicing Contact — Phone required');return;}
-  if(!d.completedBy){showToast('⚠️ Please select who completed the form');return;}
-  if(!d.vendorManaged){showToast('⚠️ Please answer: Does this customer want BioBlue to manage their delivery schedule? (Vendor Managed Site)');return;}
-  if(!d.deliveryFrequency){showToast('⚠️ Please select the anticipated delivery frequency');return;}
-  if(d.deliveryFrequency==='Other' && !d.deliveryFrequencyOther.trim()){showToast('⚠️ Please describe the delivery frequency (Other selected)');return;}
+  if(!d.customerName.trim()){showToast('⚠️ Customer name required');return { success:false, error:'Customer name required' };}
+  if(!d.formDate){showToast('⚠️ Date required');return { success:false, error:'Date required' };}
+  if(!d.siteName.trim()){showToast('⚠️ Site name required');return { success:false, error:'Site name required' };}
+  if(!d.bizContactName.trim()){showToast('⚠️ Business Contact — Full Name required');return { success:false, error:'Business Contact name required' };}
+  if(!d.bizContactRole.trim()){showToast('⚠️ Business Contact — Title / Role required');return { success:false, error:'Business Contact role required' };}
+  if(!d.bizContactEmail.trim()){showToast('⚠️ Business Contact — Email required');return { success:false, error:'Business Contact email required' };}
+  if(!d.bizContactPhone.trim()){showToast('⚠️ Business Contact — Phone required');return { success:false, error:'Business Contact phone required' };}
+  if(!d.adminContactName.trim()){showToast('⚠️ Admin / Invoicing Contact — Full Name required');return { success:false, error:'Admin Contact name required' };}
+  if(!d.adminContactRole.trim()){showToast('⚠️ Admin / Invoicing Contact — Title / Role required');return { success:false, error:'Admin Contact role required' };}
+  if(!d.adminContactEmail.trim()){showToast('⚠️ Admin / Invoicing Contact — Email required');return { success:false, error:'Admin Contact email required' };}
+  if(!d.adminContactPhone.trim()){showToast('⚠️ Admin / Invoicing Contact — Phone required');return { success:false, error:'Admin Contact phone required' };}
+  if(!d.completedBy){showToast('⚠️ Please select who completed the form');return { success:false, error:'No BDM selected' };}
+  if(!d.vendorManaged){showToast('⚠️ Please answer: Does this customer want BioBlue to manage their delivery schedule? (Vendor Managed Site)');return { success:false, error:'Vendor Managed answer required' };}
+  if(!d.deliveryFrequency){showToast('⚠️ Please select the anticipated delivery frequency');return { success:false, error:'Delivery Frequency required' };}
+  if(d.deliveryFrequency==='Other' && !d.deliveryFrequencyOther.trim()){showToast('⚠️ Please describe the delivery frequency (Other selected)');return { success:false, error:'Delivery Frequency (Other) description required' };}
 
   // Bulk CPL and Freight CPL must always exist together — one without the
   // other produces an incomplete/incorrect delivered price on the invoice.
@@ -1824,7 +1824,7 @@ async function uploadAndSend() {
     const _bulkFreight = document.getElementById('bulk_freight')?.value?.trim() || '';
     if ((_bulkCpl && !_bulkFreight) || (!_bulkCpl && _bulkFreight)) {
       showToast('⚠️ Bulk CPL and Freight CPL must both be filled in, or both left blank');
-      return;
+      return { success:false, error:'Bulk CPL and Freight CPL must both be filled in, or both left blank' };
     }
   }
 
@@ -1884,6 +1884,7 @@ async function uploadAndSend() {
     const _aid = new URLSearchParams(window.location.search).get('client');
     redirectToFieldTools(_aid||'');
     document.getElementById('modal').classList.add('active');
+    return { success:true, docRef:d.docRef, clientId:_aid };
   } catch(e) {
     gdriveToken=null;
     if (pdfBlob) {
@@ -1896,6 +1897,7 @@ async function uploadAndSend() {
       document.getElementById('modalMsg').textContent=`⚠️ Save failed: ${e.message}\n\nPlease try again.`;
     }
     document.getElementById('modal').classList.add('active');
+    return { success:false, error:e.message };
   }
 }
 
