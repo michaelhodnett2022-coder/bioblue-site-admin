@@ -639,6 +639,11 @@ const GDRIVE_CLIENT_ID    = '49055725643-mlnqu8l92vmau83rnrk8imupiqvs03t1.apps.g
 const GDRIVE_FOLDER_NAME  = 'BioBlue Audits';
 const CLIENT_RECORDS_NAME = 'BioBlue_Client_Records.xlsx';
 let gdriveToken = null;
+// A `let` at script scope isn't reachable as window.gdriveToken from outside
+// (e.g. a parent page driving this form in a hidden iframe) — this setter
+// is the actual way to hand in an already-granted token, so this page never
+// needs to open its own sign-in popup when it's not the one being clicked on.
+function setDriveToken(t) { gdriveToken = t; }
 
 const ynValues = {};  // Y/N answer state
 const BDM_MAP = {
